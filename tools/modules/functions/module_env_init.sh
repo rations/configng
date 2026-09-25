@@ -153,8 +153,8 @@ function set_runtime_variables() {
 		TRANSMISSION_WHITELIST+=",${docker_subnet}.*.*"
 	fi
 
-	BACKTITLE="\Zb\Z7Support Armbian:\Zn https://github.com/sponsors/armbian"
-	TITLE="armbian-config"
+	BACKTITLE="\Zb\Z7Pivuan:\Zn https://github.com/rations/build"
+	TITLE="pivuan-config"
 	[[ -z "${DEFAULT_ADAPTER// /}" ]] && DEFAULT_ADAPTER="lo"
 	# zfs subsystem - determine if our kernel is not too recent.
 	# In test containers / minimal images zfs-dkms may not be in any

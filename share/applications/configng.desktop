@@ -1,9 +1,9 @@
 [Desktop Entry]
 Version=1.0
-Name=Armbian Config
-Comment=Armbian System Configurations
-Exec=sh -c "sudo armbian-config"
-Icon=/usr/share/icons/armbian/armbian-config.png
+Name=Pivuan Config
+Comment=Pivuan System Configuration
+Exec=sh -c "sudo pivuan-config"
+Icon=/usr/share/pixmaps/pivuan/pivuan.png
 Terminal=true
 Type=Application
 Categories=System;Settings;

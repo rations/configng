@@ -391,6 +391,13 @@ function _module_desktops_configure_networking() {
 		return 0
 	fi
 
+	# sysvinit (Devuan / Pivuan): no netplan or systemd-resolved; the minimal
+	# image runs ifupdown. Hand its interfaces over to NetworkManager instead.
+	if _desktop_is_sysvinit; then
+		_module_desktops_ifupdown_to_networkmanager "$src_dir"
+		return 0
+	fi
+
 	# Drop the networkd-renderer netplan file shipped by minimal
 	# images. Leaving it in place next to our NetworkManager-renderer
 	# one makes `netplan generate` emit for both backends and the two
@@ -454,6 +461,99 @@ function _module_desktops_configure_networking() {
 	srv_enable NetworkManager.service 2>/dev/null || true
 	srv_start  NetworkManager.service 2>/dev/null || true
 
+	return 0
+}
+
+#
+# True on sysvinit systems (Devuan / Pivuan). Checks the installed init
+# package rather than the running PID 1, so it also answers correctly
+# inside an image-build chroot.
+#
+_desktop_is_sysvinit() {
+	[[ "$(dpkg-query -W -f='${Status}' sysvinit-core 2> /dev/null)" == "install ok installed" ]]
+}
+
+#
+# sysvinit networking: move the ifupdown stanzas of the minimal image
+# (/etc/network/interfaces.d/wired and the first-login Wi-Fi file) out of
+# the way so NetworkManager manages those interfaces; NetworkManager leaves
+# interfaces listed in /etc/network/interfaces alone ([ifupdown]
+# managed=false). A Wi-Fi network set up by the first-login wizard
+# (wpa-ssid / wpa-psk) is carried over as a NetworkManager connection.
+# The moved files keep a ".pre-networkmanager" suffix, which ifupdown's
+# source-directory ignores; renaming them back restores ifupdown.
+#
+function _module_desktops_ifupdown_to_networkmanager() {
+	local src_dir="$1"
+	local conf f iface ssid psk name
+	local -a stanza_files=() ifaces=()
+
+	mkdir -p /etc/NetworkManager/conf.d /etc/NetworkManager/system-connections
+	# Wi-Fi tweaks only; 00-armbian-readme.conf describes the netplan setup.
+	for conf in "${src_dir}"/NetworkManager/zz-*.conf; do
+		[[ -f "$conf" ]] || continue
+		cp "$conf" "/etc/NetworkManager/conf.d/$(basename "$conf")"
+	done
+
+	for f in /etc/network/interfaces.d/*; do
+		# source-directory only reads names made of letters, digits, - and _
+		[[ -f "$f" && "$(basename "$f")" =~ ^[A-Za-z0-9_-]+$ ]] || continue
+		stanza_files+=("$f")
+		while read -r iface; do
+			[[ -n "$iface" && "$iface" != "lo" ]] && ifaces+=("$iface")
+		done < <(awk '$1 == "iface" { print $2 }' "$f" | sort -u)
+
+		ssid=$(awk '$1 == "wpa-ssid" { $1 = ""; sub(/^ /, ""); print; exit }' "$f")
+		psk=$(awk '$1 == "wpa-psk" { $1 = ""; sub(/^ /, ""); print; exit }' "$f")
+		iface=$(awk '$1 == "iface" { print $2; exit }' "$f")
+		if [[ -n "$ssid" && -n "$psk" ]]; then
+			name=$(tr -c 'A-Za-z0-9_-' '_' <<< "$ssid" | sed 's/_$//')
+			local keyfile="/etc/NetworkManager/system-connections/${name:-wifi}.nmconnection"
+			install -m 600 /dev/null "$keyfile"
+			cat > "$keyfile" <<- EOF
+			[connection]
+			id=${ssid}
+			type=wifi
+			interface-name=${iface}
+			autoconnect=true
+
+			[wifi]
+			mode=infrastructure
+			ssid=${ssid}
+
+			[wifi-security]
+			key-mgmt=wpa-psk
+			psk=${psk}
+
+			[ipv4]
+			method=auto
+
+			[ipv6]
+			method=auto
+			EOF
+			echo "Wi-Fi network '${ssid}' moved to NetworkManager"
+		fi
+	done
+
+	if [[ ${#stanza_files[@]} -gt 0 ]]; then
+		# Release the interfaces while ifupdown still has their configuration.
+		# On a live system this drops the link until NetworkManager takes over
+		# a few seconds later (an SSH session over it may need to reconnect).
+		if [[ "$mode" != "build" ]] && ! _desktop_in_container; then
+			echo "Handing ${ifaces[*]} over to NetworkManager"
+			for iface in "${ifaces[@]}"; do
+				ifdown --force "$iface" > /dev/null 2>&1 || true
+			done
+		fi
+		for f in "${stanza_files[@]}"; do
+			mv -f "$f" "${f}.pre-networkmanager"
+		done
+	fi
+
+	srv_enable NetworkManager.service 2> /dev/null || true
+	if [[ "$mode" != "build" ]] && ! _desktop_in_container; then
+		srv_restart NetworkManager.service 2> /dev/null || true
+	fi
 	return 0
 }
 
@@ -746,7 +846,7 @@ function module_desktops() {
 				# actually started — if the start fails, the next boot
 				# would otherwise pin to graphical.target with a broken
 				# DM and the user gets a black screen.
-				if ! _desktop_in_container; then
+				if ! _desktop_in_container && _srv_is_systemd; then
 					for dm in gdm3 lightdm sddm; do
 						systemctl is-active --quiet "$dm" 2>/dev/null && systemctl stop "$dm" 2>/dev/null
 					done
@@ -756,6 +856,15 @@ function module_desktops() {
 						module_desktops auto de="$de"
 					else
 						echo "Warning: ${DESKTOP_DM} did not start; leaving default.target unchanged" >&2
+					fi
+				elif ! _desktop_in_container; then
+					# sysvinit (Devuan / Pivuan): the display manager's init script starts it
+					# in the default runlevel, so there is no target to switch. Make sure it is
+					# enabled and start it now. No automatic desktop login here: the display
+					# manager shows its login screen ("module_desktops auto" turns it on).
+					srv_enable "$DESKTOP_DM" 2>/dev/null || true
+					if ! service "$DESKTOP_DM" start; then
+						echo "Warning: ${DESKTOP_DM} did not start" >&2
 					fi
 				fi
 			fi
@@ -802,10 +911,13 @@ function module_desktops() {
 			# while graphical.target is still active, hence isolate.
 			# isolate is destructive (kills any open GUI sessions),
 			# but we are tearing down the GUI anyway.
-			if ! _desktop_in_container; then
+			if ! _desktop_in_container && _srv_is_systemd; then
 				systemctl stop display-manager 2>/dev/null || true
 				systemctl set-default multi-user.target 2>/dev/null || true
 				systemctl isolate multi-user.target 2>/dev/null || true
+			elif ! _desktop_in_container; then
+				# sysvinit: stopping the display manager returns to the console gettys from /etc/inittab
+				srv_stop display-manager 2>/dev/null || true
 			fi
 
 			# Remove the exact set of packages that were newly installed by
@@ -942,14 +1054,14 @@ function module_desktops() {
 
 		"${commands[2]}")
 			# disable
-			systemctl stop display-manager 2>/dev/null || true
-			systemctl disable display-manager 2>/dev/null || true
+			srv_stop display-manager 2>/dev/null || true
+			srv_disable display-manager 2>/dev/null || true
 		;;
 
 		"${commands[3]}")
 			# enable
-			systemctl enable display-manager 2>/dev/null || true
-			systemctl start display-manager 2>/dev/null || true
+			srv_enable display-manager 2>/dev/null || true
+			srv_start display-manager 2>/dev/null || true
 		;;
 
 		"${commands[4]}")
@@ -1034,7 +1146,7 @@ function module_desktops() {
 					EOF
 				;;
 			esac
-			_desktop_in_container || systemctl restart display-manager 2>/dev/null || true
+			_desktop_in_container || srv_restart display-manager 2>/dev/null || true
 		;;
 
 		"${commands[6]}")
@@ -1055,7 +1167,7 @@ function module_desktops() {
 				sddm)    rm -f /etc/sddm.conf.d/autologin.conf ;;
 				lightdm) rm -f /etc/lightdm/lightdm.conf.d/22-armbian-autologin.conf ;;
 			esac
-			_desktop_in_container || systemctl restart display-manager 2>/dev/null || true
+			_desktop_in_container || srv_restart display-manager 2>/dev/null || true
 		;;
 
 		"${commands[7]}")

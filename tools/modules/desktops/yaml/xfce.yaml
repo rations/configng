@@ -8,6 +8,9 @@ status: supported
 # all without override. See common.yaml `tiers.mid` / `tiers.full`.
 tiers:
   minimal:
+    # xfce4-terminal (from xfce4) is the terminal; no need for terminator from common.yaml
+    packages_remove:
+      - terminator
     packages:
       - xfce4
       - xfce4-goodies
@@ -42,6 +45,18 @@ tiers:
       - viewnior
       - xdg-user-dirs
       - xdg-user-dirs-gtk
+
+# Devuan (sysvinit): applied after the Debian base release's block. PipeWire
+# is started by systemd user units on Debian; without systemd, PulseAudio
+# (started by the desktop session) is the dependable choice.
+devuan:
+  packages_remove:
+    - pipewire-audio
+    - pipewire-pulse
+    - wireplumber
+  packages:
+    - pulseaudio
+    - pulseaudio-module-bluetooth
 
 releases:
   bookworm:

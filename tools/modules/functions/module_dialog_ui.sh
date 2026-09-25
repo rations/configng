@@ -153,7 +153,7 @@ generate_top_menu() {
 
 		parse_menu_items menu_options --with-help
 
-		local OPTION=$(dialog_menu "armbian-config" "$status" 0 100 10 --ok-button Select --cancel-button Exit --item-help -- "${menu_options[@]}")
+		local OPTION=$(dialog_menu "pivuan-config" "$status" 0 100 10 --ok-button Select --cancel-button Exit --item-help -- "${menu_options[@]}")
 		local exitstatus=$?
 
 		if [ $exitstatus = 0 ]; then

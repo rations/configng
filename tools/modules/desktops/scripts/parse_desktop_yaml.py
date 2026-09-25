@@ -66,6 +66,19 @@ import yaml
 
 TIERS_IN_ORDER = ("minimal", "mid", "full")
 
+# Devuan codenames and the Debian release each one is based on. Devuan's
+# merged archive passes Debian's packages through, so a Devuan release uses
+# the definitions of its Debian base, followed by the top-level `devuan:`
+# blocks of common.yaml and the per-DE YAML (packages that need systemd, or
+# that differ on a sysvinit system).
+DEVUAN_BASE = {"daedalus": "bookworm", "excalibur": "trixie", "freia": "forky", "ceres": "sid"}
+
+
+def _debian_base(release):
+    """Return (release to look up in the YAML, True if it is a Devuan release)."""
+    base = DEVUAN_BASE.get(release)
+    return (base, True) if base else (release, False)
+
 
 def shell_escape(s):
     """Escape characters that are special inside double-quoted shell strings."""
@@ -235,6 +248,7 @@ def _gather_de_pkgs_at_tier(de_data, tier):
 
 def parse_desktop(yaml_dir, de_name, release, arch, tier):
     """Parse a single desktop definition at the requested tier."""
+    release, devuan = _debian_base(release)
     yaml_file = os.path.join(yaml_dir, f"{de_name}.yaml")
 
     # Reject path traversal: de_name comes from CLI input on a tool that may run
@@ -299,6 +313,19 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
         if pkg not in packages:
             packages.append(pkg)
 
+    # 4b. Devuan: the `devuan:` blocks, common first, then the DE's.
+    devuan_removes = set()
+    if devuan:
+        for src in (common, de_data):
+            devuan_data = _as_dict(src.get("devuan"))
+            for pkg in _as_list(devuan_data.get("packages_remove")):
+                devuan_removes.add(pkg)
+                if pkg in packages:
+                    packages.remove(pkg)
+            for pkg in _as_list(devuan_data.get("packages")):
+                if pkg not in packages:
+                    packages.append(pkg)
+
     # 5. packages_uninstall is collected from minimal-tier (common + DE) +
     #    release-level packages_uninstall. The remove path uses this to purge
     #    packages that get pulled in transitively but we don't want.
@@ -323,7 +350,8 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
     arch_block = _as_dict(overrides.get(arch))
     arch_removes = set(_as_list(arch_block.get("packages_remove")))
     effective_de_pkgs = [p for p in de_pkgs_at_tier
-                         if p not in release_removes and p not in arch_removes]
+                         if p not in release_removes and p not in arch_removes
+                         and p not in devuan_removes]
     primary_pkg = effective_de_pkgs[0] if effective_de_pkgs else ""
 
     # output bash variables (shell-escaped)
@@ -493,6 +521,7 @@ def list_primaries(yaml_dir, release, arch):
     The primary package is computed at the minimal tier — that is enough
     to identify "any tier of this DE is installed".
     """
+    release, _ = _debian_base(release)
     common = load_common(yaml_dir)
     for fname in sorted(os.listdir(yaml_dir)):
         if not fname.endswith(".yaml") or fname == "common.yaml":
@@ -537,6 +566,7 @@ def list_desktops(yaml_dir, release, arch, fmt="tsv", avail_filter="available", 
     (no filtering, keep all) or an iterable of status values to KEEP
     (e.g. ("supported","community") drops status=unsupported).
     """
+    release, _ = _debian_base(release)
     import json as jsonlib
 
     entries = []

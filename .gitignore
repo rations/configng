@@ -4,3 +4,5 @@
 
 # lib output
 /lib/
+# pivuan-config .deb (tools/pivuan/build-deb.sh)
+/output/

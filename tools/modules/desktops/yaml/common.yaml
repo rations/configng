@@ -27,6 +27,15 @@ description: "Packages installed for every desktop, in tiers"
 # particular arch (e.g. blender/inkscape on armhf, libreoffice on
 # riscv64).
 
+# Devuan (sysvinit, no systemd). A Devuan release uses the definitions of
+# the Debian release it is based on (excalibur -> trixie, ...; see
+# DEVUAN_BASE in scripts/parse_desktop_yaml.py), then this block and the
+# per-DE `devuan:` block, applied after the release blocks.
+devuan:
+  packages_remove:
+    - netplan.io            # netplan's generator needs systemd; module_desktops hands ifupdown's interfaces to NetworkManager instead
+    - profile-sync-daemon   # runs as a systemd user service
+
 tiers:
   minimal:
     packages:
