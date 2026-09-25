@@ -137,7 +137,7 @@ case "$1" in
             see_cmd_list "$2"
             echo ""
         else
-            echo "Usage:  armbian-config --[option]
+            echo "Usage:  ${0##*/} --[option]
   Options:
      --help [category]   Use [category] to filter specific menu options.
      --cmd  [option]     Run a command from the menu (simple)
@@ -150,11 +150,11 @@ case "$1" in
                          Level 2 also captures set -x via BASH_XTRACEFD.
 
      Examples:
-     armbian-config --help [cmd||System||Software||Network||Localisation]
-     armbian-config --cmd help
-     armbian-config --api help
-     armbian-config --debug --cmd help
-     armbian-config --debug=2:/tmp/ac.log
+     ${0##*/} --help [cmd||System||Software||Network||Localisation]
+     ${0##*/} --cmd help
+     ${0##*/} --api help
+     ${0##*/} --debug --cmd help
+     ${0##*/} --debug=2:/tmp/ac.log
 "
         fi
     ;;
