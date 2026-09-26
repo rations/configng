@@ -1,0 +1,32 @@
+#!/bin/sh
+# Pivuan: on a user's first XFCE login, show the Pivuan background on every
+# connected monitor, unless a background was already chosen there.
+# xfdesktop stores the background per monitor connector name (HDMI-1, HDMI-2,
+# ...), which /etc/skel cannot know in advance. Started by
+# /etc/xdg/autostart/pivuan-xfce-backdrop.desktop; runs once per user.
+img=/usr/share/backgrounds/pivuan/pivuan-background.png
+marker="${XDG_CONFIG_HOME:-$HOME/.config}/pivuan/xfce-backdrop"
+
+[ -f "$img" ] && [ ! -e "$marker" ] || exit 0
+command -v xfconf-query > /dev/null && command -v xrandr > /dev/null || exit 0
+
+# One background for all workspaces (xfdesktop's "Apply to all workspaces").
+xfconf-query -c xfce4-desktop -p /backdrop/single-workspace-mode -n -t bool -s true
+xfconf-query -c xfce4-desktop -p /backdrop/single-workspace-number -n -t int -s 0
+
+done_any=
+for mon in $(xrandr --listactivemonitors 2> /dev/null | awk 'NR > 1 { print $NF }'); do
+	p="/backdrop/screen0/monitor${mon}/workspace0"
+	case "$(xfconf-query -c xfce4-desktop -p "$p/last-image" 2> /dev/null)" in
+		"" | /usr/share/backgrounds/xfce/* | /usr/share/images/desktop-base/* | "$img") ;;
+		*) done_any=1; continue ;; # the user's own choice
+	esac
+	xfconf-query -c xfce4-desktop -p "$p/color-style" -n -t int -s 0
+	xfconf-query -c xfce4-desktop -p "$p/image-style" -n -t int -s 5
+	xfconf-query -c xfce4-desktop -p "$p/last-image" -n -t string -s "$img"
+	done_any=1
+done
+
+# Only once a monitor was seen, so a login without a display tries again.
+[ -n "$done_any" ] && mkdir -p "${marker%/*}" && touch "$marker"
+exit 0

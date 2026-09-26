@@ -46,6 +46,25 @@ _parse_debug_flag() {
 _parse_debug_flag "$@"
 set -- "${_debug_argv[@]}"
 
+# --doc (Pivuan): show the Pivuan README; needs no root. Armbian's README
+# generator is still there as: --api generate_readme
+if [[ "$1" == "--doc" ]]; then
+	_bindir="$(dirname "$(readlink -f "$0")")"
+	for _doc in "$_bindir/../share/doc/pivuan-config/README.md" "$_bindir/../tools/pivuan/README.md" ""; do
+		[[ -f "$_doc" ]] && break
+	done
+	if [[ ! -f "$_doc" ]]; then
+		echo "Pivuan documentation: https://github.com/rations/pivuan"
+	elif [[ -t 1 ]] && command -v less > /dev/null; then
+		less -FRX "$_doc"
+	elif [[ -t 1 ]] && command -v more > /dev/null; then
+		more "$_doc"
+	else
+		cat "$_doc"
+	fi
+	exit 0
+fi
+
 [[ $EUID != 0 ]] && exec sudo --preserve-env=DEBUG,DEBUG_LOG,NCURSES_NO_UTF8_ACS "$0" "$@"
 #
 # Get the script directory
@@ -123,9 +142,6 @@ checkpoint mark "Loaded Software helpers..."
 #
 # Loads the variables from beta armbian-config for runtime handling
 
-# Override LOCALIPADD to use localhost for documentation
-[[ "$1" == "--doc" ]] && LOCALIPADD="localhost"
-
 source "$lib_dir/config.runtime.sh"
 checkpoint mark "Loaded Runtime conditions..."
 
@@ -142,7 +158,7 @@ case "$1" in
      --help [category]   Use [category] to filter specific menu options.
      --cmd  [option]     Run a command from the menu (simple)
      --api  [option]     Run a helper command        (advanced)
-     --doc               Generate the README.md file
+     --doc               Show the Pivuan README
      --debug[=spec]      Enable debug logging to a file.
                          spec is one of: <level> (1 or 2),
                          <path>, or <level>:<path>.
@@ -157,10 +173,6 @@ case "$1" in
      ${0##*/} --debug=2:/tmp/ac.log
 "
         fi
-    ;;
-
-    "--doc")
-        generate_readme
     ;;
 
     "--cmd")

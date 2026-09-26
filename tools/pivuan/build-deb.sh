@@ -33,6 +33,9 @@ cp -a "${work}/src/share/." "${pkg}/usr/share/"
 cp -a "${work}/src/tools/modules/desktops" "${pkg}/usr/share/armbian-config/"
 cp -a "${work}/src/tools/modules/system/runner-cleanup" "${pkg}/usr/share/armbian-config/"
 install -m 0755 "${work}/src/bin/armbian-config" "${pkg}/usr/bin/pivuan-config"
+# Shown by `pivuan-config --doc`: the README of https://github.com/rations/pivuan
+# without its HTML logo header. Keep the two in step.
+install -Dm 0644 "${work}/src/tools/pivuan/README.md" "${pkg}/usr/share/doc/pivuan-config/README.md"
 
 # Version: date of the last commit plus its hash when built from git, else today.
 version="$(date -u +%Y.%m.%d)"

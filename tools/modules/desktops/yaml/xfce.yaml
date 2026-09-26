@@ -57,6 +57,10 @@ devuan:
   packages:
     - pulseaudio
     - pulseaudio-module-bluetooth
+    - network-manager-gnome   # nm-applet tray icon and nm-connection-editor (a Recommends, so not pulled in)
+    - x11-xserver-utils       # xrandr, used by the Pivuan background at first login
+    - xfce-polkit             # password dialog for polkit (NetworkManager, disks, shutdown); XFCE has none of its own
+    - pkexec                  # xfce4-session's shutdown fallback and "run as administrator" launchers
 
 releases:
   bookworm:

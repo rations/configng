@@ -1,0 +1,12 @@
+// Pivuan (sysvinit, elogind): the LightDM login screen, and administrators
+// (group sudo) sitting at the Pi, may shut it down or restart it.
+// elogind allows that without a password only for the active session on the
+// seat; when it does not count the desktop or the login screen as that
+// session, it asks for an administrator password, the login screen cannot
+// ask, and the desktop only logs out.
+polkit.addRule(function(action, subject) {
+	if (/^org\.freedesktop\.login1\.(power-off|reboot)(-multiple-sessions)?$/.test(action.id) &&
+	    (subject.user == "lightdm" || (subject.local && subject.isInGroup("sudo")))) {
+		return polkit.Result.YES;
+	}
+});

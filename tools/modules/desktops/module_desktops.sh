@@ -543,6 +543,12 @@ function _module_desktops_ifupdown_to_networkmanager() {
 			echo "Handing ${ifaces[*]} over to NetworkManager"
 			for iface in "${ifaces[@]}"; do
 				ifdown --force "$iface" > /dev/null 2>&1 || true
+				# ifupdown's own wpa_supplicant (wpasupplicant's ifupdown hook) would
+				# keep holding the Wi-Fi interface next to NetworkManager's.
+				if [[ -f "/run/wpa_supplicant.${iface}.pid" ]]; then
+					kill "$(cat "/run/wpa_supplicant.${iface}.pid")" 2> /dev/null || true
+					rm -f "/run/wpa_supplicant.${iface}.pid"
+				fi
 			done
 		fi
 		for f in "${stanza_files[@]}"; do
@@ -553,6 +559,13 @@ function _module_desktops_ifupdown_to_networkmanager() {
 	srv_enable NetworkManager.service 2> /dev/null || true
 	if [[ "$mode" != "build" ]] && ! _desktop_in_container; then
 		srv_restart NetworkManager.service 2> /dev/null || true
+		# Radio on and managed, then let it bring up the carried-over connection.
+		sleep 3
+		nmcli radio wifi on > /dev/null 2>&1 || true
+		for iface in "${ifaces[@]}"; do
+			nmcli device set "$iface" managed yes > /dev/null 2>&1 || true
+		done
+		nmcli -t -f DEVICE,STATE device 2> /dev/null | sed 's/^/NetworkManager: /' || true
 	fi
 	return 0
 }
@@ -860,6 +873,13 @@ function module_desktops() {
 
 			# install branding
 			module_desktop_branding "$de"
+
+			# sysvinit (Devuan / Pivuan): let the desktop and the login screen
+			# shut down and restart the Pi (branding/polkit/50-pivuan-power.rules).
+			if _desktop_is_sysvinit && [[ -f "${desktops_dir}/branding/polkit/50-pivuan-power.rules" ]]; then
+				install -Dm 0644 "${desktops_dir}/branding/polkit/50-pivuan-power.rules" \
+					/etc/polkit-1/rules.d/50-pivuan-power.rules
+			fi
 
 			# Flip netplan renderer from systemd-networkd to
 			# NetworkManager. On a minimal-image base the baseline

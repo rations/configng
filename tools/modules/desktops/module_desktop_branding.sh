@@ -53,6 +53,17 @@ function module_desktop_branding() {
 			if [[ -d "$desktop_dir/branding/wallpapers" ]]; then
 				mkdir -p /usr/share/backgrounds/pivuan
 				cp "$desktop_dir/branding/wallpapers/"* /usr/share/backgrounds/pivuan/ 2>/dev/null || true
+				# Listed in XFCE's wallpaper picker, which opens in this folder.
+				if [[ -d /usr/share/backgrounds/xfce ]]; then
+					ln -sfn ../pivuan/pivuan-background.png /usr/share/backgrounds/xfce/pivuan-background.png
+				fi
+			fi
+
+			# XFCE: set the Pivuan background on each monitor at a user's first
+			# login (xfdesktop keys it by the monitor's connector name).
+			if [[ "$de" == "xfce" && -d "$desktop_dir/branding/xfce" ]]; then
+				install -Dm 0755 "$desktop_dir/branding/xfce/pivuan-xfce-backdrop" /usr/lib/pivuan/pivuan-xfce-backdrop
+				install -Dm 0644 "$desktop_dir/branding/xfce/pivuan-xfce-backdrop.desktop" /etc/xdg/autostart/pivuan-xfce-backdrop.desktop
 			fi
 
 			# desktop icons

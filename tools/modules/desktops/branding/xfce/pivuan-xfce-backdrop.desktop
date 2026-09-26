@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Pivuan background
+Comment=Sets the Pivuan desktop background on the first login
+Exec=/usr/lib/pivuan/pivuan-xfce-backdrop
+OnlyShowIn=XFCE;
+NoDisplay=true
+X-XFCE-Autostart-Override=true
