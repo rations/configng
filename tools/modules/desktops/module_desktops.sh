@@ -474,14 +474,47 @@ _desktop_is_sysvinit() {
 }
 
 #
+# Run a command outside the caller's elogind session (sysvinit). elogind maps a
+# process to a session by its cgroup ("/<session>"), so a daemon started from a
+# login shell, for example root's on the console after the first-login wizard,
+# stays in that session, and so does everything it starts: LightDM's desktop
+# logins would then belong to root's console session (polkit agents fail with
+# "User of caller and user of subject differs", the desktop is not the active
+# session). Moving the subshell to the root cgroup first gives it no session.
+#
+_desktop_outside_session() {
+	(
+		local fstype="" opt="" mnt=""
+		if grep -q '^[0-9]*:name=elogind:' /proc/self/cgroup 2> /dev/null; then
+			fstype=cgroup opt=name=elogind
+		elif grep -q '^0::' /proc/self/cgroup 2> /dev/null; then
+			fstype=cgroup2
+		fi
+		if [[ -n "$fstype" ]]; then
+			# mountinfo: "<id> <parent> <dev> <root> <mountpoint> ... - <fstype> <source> <options>"
+			mnt=$(awk -v fs="$fstype" -v opt="$opt" '{
+				split($0, side, " - "); split(side[1], l, " "); split(side[2], r, " ")
+				if (r[1] == fs && (opt == "" || index("," r[3] ",", "," opt ","))) { print l[5]; exit }
+			}' /proc/self/mountinfo)
+		fi
+		if [[ -n "$mnt" && -w "${mnt}/cgroup.procs" ]]; then
+			echo "$BASHPID" > "${mnt}/cgroup.procs" 2> /dev/null || true
+		fi
+		"$@"
+	)
+}
+
+#
 # sysvinit networking: move the ifupdown stanzas of the minimal image
 # (/etc/network/interfaces.d/wired and the first-login Wi-Fi file) out of
 # the way so NetworkManager manages those interfaces; NetworkManager leaves
 # interfaces listed in /etc/network/interfaces alone ([ifupdown]
 # managed=false). A Wi-Fi network set up by the first-login wizard
 # (wpa-ssid / wpa-psk) is carried over as a NetworkManager connection.
-# The moved files keep a ".pre-networkmanager" suffix, which ifupdown's
-# source-directory ignores; renaming them back restores ifupdown.
+# The files go to /etc/network/interfaces.pre-networkmanager/: moving them back
+# restores ifupdown. They must leave interfaces.d: NetworkManager's ifupdown
+# plugin reads every file there (ifupdown only names without a dot), and would
+# keep the interfaces in them unmanaged.
 #
 function _module_desktops_ifupdown_to_networkmanager() {
 	local src_dir="$1"
@@ -551,14 +584,21 @@ function _module_desktops_ifupdown_to_networkmanager() {
 				fi
 			done
 		fi
+		mkdir -p /etc/network/interfaces.pre-networkmanager
 		for f in "${stanza_files[@]}"; do
-			mv -f "$f" "${f}.pre-networkmanager"
+			mv -f "$f" /etc/network/interfaces.pre-networkmanager/
 		done
 	fi
+	# Earlier versions renamed them in place ("<name>.pre-networkmanager").
+	for f in /etc/network/interfaces.d/*.pre-networkmanager; do
+		[[ -f "$f" ]] || continue
+		mkdir -p /etc/network/interfaces.pre-networkmanager
+		mv -f "$f" "/etc/network/interfaces.pre-networkmanager/$(basename "$f" .pre-networkmanager)"
+	done
 
 	srv_enable NetworkManager.service 2> /dev/null || true
 	if [[ "$mode" != "build" ]] && ! _desktop_in_container; then
-		srv_restart NetworkManager.service 2> /dev/null || true
+		_desktop_outside_session srv_restart NetworkManager.service 2> /dev/null || true
 		# Radio on and managed, then let it bring up the carried-over connection.
 		sleep 3
 		nmcli radio wifi on > /dev/null 2>&1 || true
@@ -950,7 +990,7 @@ function module_desktops() {
 					# enabled and start it now. No automatic desktop login here: the display
 					# manager shows its login screen ("module_desktops auto" turns it on).
 					srv_enable "$DESKTOP_DM" 2>/dev/null || true
-					if ! service "$DESKTOP_DM" start; then
+					if ! _desktop_outside_session service "$DESKTOP_DM" start; then
 						echo "Warning: ${DESKTOP_DM} did not start" >&2
 					fi
 				fi
