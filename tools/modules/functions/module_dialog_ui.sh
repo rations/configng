@@ -20,7 +20,10 @@ function set_colors() {
 		set_newt_colors "$color_code"
 		#echo "color code: $color_code" | show_infobox ;
 	elif [ "$DIALOG" = "dialog" ]; then
-		set_term_colors "$color_code"
+		# dialog draws its own colours. Writing set_term_colors' escape code
+		# to the terminal only left the console with a coloured background
+		# (green, from config.runtime.sh) for --help, --cmd and later output.
+		return 0
 	elif [ "$DIALOG" = "read" ]; then
 		# Text-based interface doesn't support colors, just return success
 		return 0
