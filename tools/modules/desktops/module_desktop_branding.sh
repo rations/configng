@@ -34,7 +34,7 @@ function module_desktop_branding() {
 				return 0
 			fi
 
-			dialog_infobox "Desktop" "Installing Armbian branding for ${de}..."
+			dialog_infobox "Desktop" "Installing Pivuan branding for ${de}..."
 
 			# greeter configuration (lightdm)
 			if [[ -d "$desktop_dir/greeters/lightdm" ]]; then
@@ -48,16 +48,11 @@ function module_desktop_branding() {
 				cp -R "$desktop_dir/skel/." /etc/skel/
 			fi
 
-			# wallpapers
+			# wallpapers (Pivuan: one background for the desktop and the
+			# LightDM greeter, /usr/share/backgrounds/pivuan/pivuan-background.png)
 			if [[ -d "$desktop_dir/branding/wallpapers" ]]; then
-				mkdir -p /usr/share/backgrounds/armbian
-				cp "$desktop_dir/branding/wallpapers/"*.jpg /usr/share/backgrounds/armbian/ 2>/dev/null || true
-			fi
-
-			# lightdm wallpapers
-			if [[ -d "$desktop_dir/branding/wallpapers-lightdm" ]]; then
-				mkdir -p /usr/share/backgrounds/armbian-lightdm
-				cp "$desktop_dir/branding/wallpapers-lightdm/"*.jpg /usr/share/backgrounds/armbian-lightdm/ 2>/dev/null || true
+				mkdir -p /usr/share/backgrounds/pivuan
+				cp "$desktop_dir/branding/wallpapers/"* /usr/share/backgrounds/pivuan/ 2>/dev/null || true
 			fi
 
 			# desktop icons

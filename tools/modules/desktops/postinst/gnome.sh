@@ -57,14 +57,14 @@ cat >> "$keys" <<- EOF
 	click-method='areas'
 
 	[org/gnome/desktop/background]
-	picture-uri='file:///usr/share/backgrounds/armbian/armbian18-Dre0x-Minum-light-3840x2160.jpg'
-	picture-uri-dark='file:///usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg'
+	picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+	picture-uri-dark='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
 	picture-options='zoom'
 	primary-color='#456789'
 	secondary-color='#FFFFFF'
 
 	[org/gnome/desktop/screensaver]
-	picture-uri='file:///usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg'
+	picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
 	picture-options='zoom'
 	primary-color='#456789'
 	secondary-color='#FFFFFF'

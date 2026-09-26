@@ -35,6 +35,13 @@ devuan:
   packages_remove:
     - netplan.io            # netplan's generator needs systemd; module_desktops hands ifupdown's interfaces to NetworkManager instead
     - profile-sync-daemon   # runs as a systemd user service
+    - chromium              # the browser is Brave Origin (brave_package below)
+    - armbian-imager        # apt.armbian.com only; Pivuan has no Armbian apt source
+    - code                  # apt.armbian.com only
+  # Browser for every tier: this package from Brave's own apt repository
+  # (the one https://dl.brave.com/install.sh sets up), installed by
+  # module_desktops after the desktop. A failure there only skips the browser.
+  brave_package: brave-origin
 
 tiers:
   minimal:

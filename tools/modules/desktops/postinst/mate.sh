@@ -15,7 +15,7 @@ install -Dv /dev/null $profile
 
 echo "[org/mate/desktop/background]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg'
+picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 
@@ -35,7 +35,7 @@ toolkit-accessibility=false
 
 [org/mate/desktop/screensaver]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/armbian-lightdm/armbian03-Dre0x-Minum-dark-blurred-3840x2160.jpg'
+picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 
@@ -132,7 +132,7 @@ dconf update
 mkdir -p /usr/share/glib-2.0/schemas
 cat > /usr/share/glib-2.0/schemas/90-armbian-mate.gschema.override <<- 'GSEOF'
 [org.mate.background]
-picture-filename='/usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg'
+picture-filename='/usr/share/backgrounds/pivuan/pivuan-background.png'
 picture-options='zoom'
 primary-color='#456789'
 

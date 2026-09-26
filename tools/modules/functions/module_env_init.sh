@@ -153,7 +153,7 @@ function set_runtime_variables() {
 		TRANSMISSION_WHITELIST+=",${docker_subnet}.*.*"
 	fi
 
-	BACKTITLE="\Zb\Z7Pivuan:\Zn https://github.com/rations/build"
+	BACKTITLE="\Zb\Z7Pivuan:\Zn https://github.com/rations/pivuan"
 	TITLE="pivuan-config"
 	[[ -z "${DEFAULT_ADAPTER// /}" ]] && DEFAULT_ADAPTER="lo"
 	# zfs subsystem - determine if our kernel is not too recent.

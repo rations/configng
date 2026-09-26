@@ -44,10 +44,10 @@ cat > "${pkg}/DEBIAN/control" << EOF
 Package: pivuan-config
 Version: ${version}
 Architecture: all
-Maintainer: Pivuan <https://github.com/rations/build>
+Maintainer: Pivuan <https://github.com/rations/pivuan>
 Section: admin
 Priority: optional
-Depends: bash, jq, whiptail, sudo, procps, sysvinit-utils, init-system-helpers, lsb-release, iproute2, debconf, libtext-iconv-perl, gpg, xz-utils, pv, python3-yaml, expect-dev, rsync, parted, dosfstools, e2fsprogs, btrfs-progs, f2fs-tools, ntfs-3g
+Depends: bash, jq, curl, whiptail, sudo, procps, sysvinit-utils, init-system-helpers, lsb-release, iproute2, debconf, libtext-iconv-perl, gpg, xz-utils, pv, python3-yaml, expect-dev, rsync, parted, dosfstools, e2fsprogs, btrfs-progs, f2fs-tools, ntfs-3g
 Conflicts: armbian-config
 Replaces: armbian-config
 Homepage: https://github.com/rations/configng

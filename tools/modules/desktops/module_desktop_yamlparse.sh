@@ -13,7 +13,7 @@ module_options+=(
 # Sets: DESKTOP_PACKAGES, DESKTOP_PACKAGES_UNINSTALL, DESKTOP_PRIMARY_PKG,
 #       DESKTOP_DM, DESKTOP_STATUS, DESKTOP_AVAILABLE, DESKTOP_DESC,
 #       DESKTOP_TIER, DESKTOP_REPO_URL, DESKTOP_REPO_KEY_URL,
-#       DESKTOP_REPO_KEYRING
+#       DESKTOP_REPO_KEYRING, DESKTOP_BRAVE_PKG (Devuan)
 #
 # tier defaults to 'minimal' when omitted, so callers that only need
 # the primary package or display manager (status checks, listing) can
@@ -59,6 +59,7 @@ function module_desktop_yamlparse() {
 			DESKTOP_AVAILABLE=""
 			DESKTOP_DESC=""
 			DESKTOP_TIER=""
+			DESKTOP_BRAVE_PKG=""
 			DESKTOP_REPO_URL=""
 			DESKTOP_REPO_KEY_URL=""
 			DESKTOP_REPO_KEYRING=""

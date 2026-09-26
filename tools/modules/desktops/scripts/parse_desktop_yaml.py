@@ -363,6 +363,15 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
     print(f'DESKTOP_AVAILABLE="{"yes" if is_available else "no"}"')
     print(f'DESKTOP_DESC="{shell_escape(de_data.get("description", de_name))}"')
     print(f'DESKTOP_TIER="{shell_escape(tier)}"')
+    # Devuan: browser package from Brave's apt repository (`brave_package` in
+    # a `devuan:` block; the DE's wins over common's, empty turns it off).
+    brave_pkg = ""
+    if devuan:
+        for src in (common, de_data):
+            devuan_data = _as_dict(src.get("devuan"))
+            if "brave_package" in devuan_data:
+                brave_pkg = devuan_data.get("brave_package") or ""
+    print(f'DESKTOP_BRAVE_PKG="{shell_escape(brave_pkg)}"')
 
     # repo info
     repo = _as_dict(de_data.get("repo"))

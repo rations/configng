@@ -22,7 +22,7 @@ fi
 if [ -f /etc/i3/config ]; then
 	# wallpaper
 	grep -q "feh --bg-scale" /etc/i3/config || \
-		echo "exec_always --no-startup-id feh --bg-scale /usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg" >> /etc/i3/config
+		echo "exec_always --no-startup-id feh --bg-scale /usr/share/backgrounds/pivuan/pivuan-background.png" >> /etc/i3/config
 	# use terminator instead of default terminal
 	sed -i 's/i3-sensible-terminal/terminator/g' /etc/i3/config
 	# start nm-applet

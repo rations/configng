@@ -8,5 +8,5 @@ plugin=org.kde.desktopcontainment
 wallpaperplugin=org.kde.image
 
 [Containments][1][Wallpaper][org.kde.image][General]
-Image=file:///usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg
+Image=file:///usr/share/backgrounds/pivuan/pivuan-background.png
 FillMode=1

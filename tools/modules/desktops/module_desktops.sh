@@ -558,6 +558,65 @@ function _module_desktops_ifupdown_to_networkmanager() {
 }
 
 #
+# Devuan (Pivuan): install the browser from Brave's own apt repository, set up
+# the way https://dl.brave.com/install.sh does it (Brave's keyring and deb822
+# source, same file names), and make it XFCE's default web browser.
+# Usage: _module_desktops_install_brave <package>   (e.g. brave-origin)
+# Non-fatal for the caller: on failure the Brave source is removed again so
+# apt keeps working, and the desktop is left without a browser.
+#
+function _module_desktops_install_brave() {
+	local pkg="$1"
+	local base="https://brave-browser-apt-release.s3.brave.com"
+	local keyring="/usr/share/keyrings/brave-browser-archive-keyring.gpg"
+	local sources="/etc/apt/sources.list.d/brave-browser-release.sources"
+	local tmp
+
+	[[ "$pkg" =~ ^[a-z0-9][a-z0-9.+-]*$ ]] || return 1
+	tmp=$(mktemp -d) || return 1
+	if ! curl -fsSL --retry 3 --retry-connrefused --connect-timeout 10 --max-time 60 \
+			-o "${tmp}/keyring.gpg" "${base}/brave-browser-archive-keyring.gpg" \
+		|| ! curl -fsSL --retry 3 --retry-connrefused --connect-timeout 10 --max-time 60 \
+			-o "${tmp}/brave.sources" "${base}/brave-browser.sources" \
+		|| [[ ! -s "${tmp}/keyring.gpg" || ! -s "${tmp}/brave.sources" ]]; then
+		echo "Warning: cannot download Brave's apt key or source list; ${pkg} not installed" >&2
+		rm -rf "$tmp"
+		return 1
+	fi
+	install -DTm644 "${tmp}/keyring.gpg" "$keyring"
+	install -DTm644 "${tmp}/brave.sources" "$sources"
+	rm -f /etc/apt/sources.list.d/brave-browser-*.list
+	rm -rf "$tmp"
+
+	if ! pkg_update || ! pkg_install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$pkg"; then
+		echo "Warning: ${pkg} install failed; removing Brave's apt source" >&2
+		rm -f "$sources" "$keyring"
+		pkg_update || true
+		return 1
+	fi
+
+	# XFCE's "Web Browser" (exo-open --launch WebBrowser): an exo helper for
+	# the browser and the system-wide default. The command is the package name.
+	mkdir -p /usr/share/xfce4/helpers /etc/xdg/xfce4
+	cat > "/usr/share/xfce4/helpers/${pkg}.desktop" <<- EOF
+	[Desktop Entry]
+	NoDisplay=true
+	Version=1.0
+	Type=X-XFCE-Helper
+	X-XFCE-Category=WebBrowser
+	Name=Brave
+	Icon=${pkg}
+	X-XFCE-Binaries=${pkg};
+	X-XFCE-Commands=%B;
+	X-XFCE-CommandsWithParameter=%B "%s";
+	EOF
+	touch /etc/xdg/xfce4/helpers.rc
+	sed -i '/^WebBrowser=/d' /etc/xdg/xfce4/helpers.rc
+	echo "WebBrowser=${pkg}" >> /etc/xdg/xfce4/helpers.rc
+	return 0
+}
+
+#
 # Detect whether desktop $de is installed. Returns 0 if so, 1 otherwise.
 # Layered to avoid the dpkg-only check misfiring when DEs share
 # packages (e.g. Bianbu's bianbu-desktop-minimal-en depends on
@@ -748,6 +807,14 @@ function module_desktops() {
 					srv_disable display-manager 2>/dev/null || true
 					srv_disable psd.service 2>/dev/null || true
 				fi
+			fi
+
+			# Devuan: the browser comes from Brave's apt repository
+			# (DESKTOP_BRAVE_PKG, common.yaml `devuan:`). Before the
+			# manifest below, so uninstall removes it with the desktop.
+			if [[ -n "$DESKTOP_BRAVE_PKG" ]]; then
+				_module_desktops_install_brave "$DESKTOP_BRAVE_PKG" || \
+					echo "Warning: continuing without ${DESKTOP_BRAVE_PKG}" >&2
 			fi
 
 			# Armbian-only branding extras: install only when the Armbian

@@ -46,7 +46,7 @@ sidebar-bookmark-breakpoint=5
 [org/gnome/desktop/background]
 color-shading-type='solid'
 picture-options='stretched'
-picture-uri='file:////usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg'
+picture-uri='file:////usr/share/backgrounds/pivuan/pivuan-background.png'
 primary-color='#008094'
 
 [org/gnome/settings-daemon/plugins/power]
@@ -63,7 +63,7 @@ monospace-font-name='Noto Mono 11'
 toolkit-accessibility=false
 
 [org/gnome/desktop/screensaver]
-picture-uri='file:///usr/share/backgrounds/armbian-lightdm/armbian03-Dre0x-Minum-dark-blurred-3840x2160.jpg'
+picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
 
 [org/cinnamon/desktop/applications/terminal]
 exec='/usr/bin/terminator'

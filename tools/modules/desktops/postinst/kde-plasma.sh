@@ -5,7 +5,7 @@ set +e
 # plasma-chili only works with X11 greeter (Ubuntu), skip on Wayland greeter (Trixie)
 if [ -d /usr/share/sddm/themes/plasma-chili ] && [ -f /etc/sddm.conf ]; then
 	# Ubuntu: has /etc/sddm.conf, uses X11 greeter
-	cp /usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg \
+	cp /usr/share/backgrounds/pivuan/pivuan-background.png \
 		/usr/share/sddm/themes/plasma-chili/components/artwork/background.jpg 2>/dev/null || true
 	if grep -q '^Current=' /etc/sddm.conf; then
 		sed -i 's/^Current=.*/Current=plasma-chili/' /etc/sddm.conf
@@ -31,7 +31,7 @@ for home in /etc/skel /home/*; do
 	wallpaperplugin=org.kde.image
 
 	[Containments][1][Wallpaper][org.kde.image][General]
-	Image=file:///usr/share/backgrounds/armbian/armbian03-Dre0x-Minum-dark-3840x2160.jpg
+	Image=file:///usr/share/backgrounds/pivuan/pivuan-background.png
 	FillMode=1
 	PLASMAEOF
 	# fix ownership for real users

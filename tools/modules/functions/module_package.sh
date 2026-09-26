@@ -95,20 +95,52 @@ apt_operation_progress() {
 				apt_cmd="DEBIAN_FRONTEND=noninteractive apt-get -y $operation ${args[*]}"
 			fi
 
-			# Run apt command. tee preserves apt's output for the error dialog;
-			# ${PIPESTATUS[0]} preserves apt's own exit code, which the outer
-			# `... | dialog_gauge` pipeline would otherwise hide behind
+			# Run apt command. Its output is kept in $error_file for the error
+			# dialog; ${PIPESTATUS[0]} preserves apt's own exit code, which the
+			# outer `... | dialog_gauge` pipeline would otherwise hide behind
 			# dialog_gauge's (always-success) status - masking a failed apt run.
-			eval "$apt_cmd" 2>&1 | tee "$error_file" | while IFS= read -r line; do
+			#
+			# APT::Status-Fd=1 adds apt's machine-readable progress lines to the
+			# same stream: "dlstatus:<n>:<percent>:<text>" while downloading and
+			# "pmstatus:<pkg>:<percent>:<text>" while dpkg unpacks/configures.
+			# Downloading fills the gauge to 50%, installing from 50 to 100%.
+			local percent=0
+			eval "$apt_cmd -o APT::Status-Fd=1" 2>&1 | while IFS= read -r line; do
+				local kind pct text
+				case "$line" in
+					dlstatus:*|pmstatus:*)
+						IFS=: read -r kind _ pct text <<< "$line"
+						pct="${pct%%.*}"
+						[[ "$pct" =~ ^[0-9]+$ ]] || continue
+						if [[ "$kind" == dlstatus ]]; then
+							percent=$(( pct / 2 ))
+						else
+							percent=$(( 50 + pct / 2 ))
+						fi
+						echo "XXX"
+						echo "$percent"
+						echo "$text"
+						echo "XXX"
+						continue
+						;;
+					pmerror:*)
+						printf '%s\n' "${line#pmerror:}" >> "$error_file"
+						continue
+						;;
+					pmconffile:*|media-change:*)
+						continue
+						;;
+				esac
+				printf '%s\n' "$line" >> "$error_file"
 				# Parse apt output for progress indicators
-				if [[ "$line" =~ ^(Hit|Get|Reading|Download|Fetch|Hit|Preparing|Unpacking|Setting|Selecting|Processing) ]]; then
+				if [[ "$line" =~ ^(Hit|Get|Reading|Download|Fetch|Preparing|Unpacking|Setting|Selecting|Processing) ]]; then
 					echo "XXX"
-					echo "0"
+					echo "$percent"
 					echo "$line"
 					echo "XXX"
 				elif [[ "$line" =~ (Err|Error|FAILED|could not|unable to) ]]; then
 					echo "XXX"
-					echo "0"
+					echo "$percent"
 					echo "Error: $line"
 					echo "XXX"
 				fi
