@@ -5,6 +5,32 @@
             "description": "Fixed and wireless network settings",
             "sub": [
                 {
+                    "id": "NMC001",
+                    "description": "Network connections",
+                    "short": "Connections",
+                    "module": "module_networkmanager",
+                    "command": [
+                        "module_networkmanager connections"
+                    ],
+                    "status": "Stable",
+                    "author": "@rations",
+                    "condition": "[[ -f /etc/devuan_version ]] && module_networkmanager status",
+                    "help": "Add, edit or remove Wi-Fi and Ethernet connections, fixed addresses, DNS, hotspots and bridges with NetworkManager's text interface (nmtui)."
+                },
+                {
+                    "id": "NMC002",
+                    "description": "Switch to NetworkManager",
+                    "short": "NetworkManager",
+                    "module": "module_networkmanager",
+                    "command": [
+                        "module_networkmanager switch"
+                    ],
+                    "status": "Stable",
+                    "author": "@rations",
+                    "condition": "[[ -f /etc/devuan_version ]] && ! module_networkmanager status",
+                    "help": "Let NetworkManager manage Ethernet and Wi-Fi instead of ifupdown, so connections can be changed with nmtui. The Wi-Fi network from the first-login wizard is carried over."
+                },
+                {
                     "id": "BNS001",
                     "description": "Basic network setup",
                     "short": "Basic setup",
@@ -14,7 +40,7 @@
                     ],
                     "status": "Stable",
                     "author": "@igorpecovnik",
-                    "condition": "",
+                    "condition": "[[ ! -f /etc/devuan_version ]]",
                     "help": "Configure basic network settings for wired and wireless interfaces"
                 },
                 {
@@ -27,7 +53,7 @@
                     ],
                     "status": "Stable",
                     "author": "@igorpecovnik",
-                    "condition": "[ -f /etc/netplan/10-dhcp-all-interfaces.yaml ] && [ -f /etc/netplan/armbian.yaml ]",
+                    "condition": "[[ ! -f /etc/devuan_version ]] && [ -f /etc/netplan/10-dhcp-all-interfaces.yaml ] && [ -f /etc/netplan/armbian.yaml ]",
                     "help": "Remove Fallback DHCP Configuration"
                 },
                 {
@@ -40,7 +66,7 @@
                     ],
                     "status": "Stable",
                     "author": "@igorpecovnik",
-                    "condition": "[[ -f /etc/netplan/armbian.yaml ]]",
+                    "condition": "[[ ! -f /etc/devuan_version ]] && [[ -f /etc/netplan/armbian.yaml ]]",
                     "help": "View Network Configuration allows you to display the system’s active network settings."
                 },
                 {
@@ -96,7 +122,8 @@
                             "help": "Show active status"
                         }
                     ],
-                    "help": "Advanced network configuration with bridges, VLANs, and bonding"
+                    "help": "Advanced network configuration with bridges, VLANs, and bonding",
+                    "condition": "[[ ! -f /etc/devuan_version ]]"
                 },
                 {
                     "id": "BLU001",
