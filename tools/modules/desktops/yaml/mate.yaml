@@ -8,6 +8,7 @@ tiers:
     packages:
       - mate-desktop-environment
       - mate-desktop-environment-extras
+      - mate-terminal
       - lightdm
       - slick-greeter
       - xserver-xorg
@@ -39,7 +40,9 @@ tiers:
       - viewnior
       - xdg-user-dirs
       - xdg-user-dirs-gtk
+    # mate-terminal is the terminal; no need for terminator from common.yaml
     packages_remove:
+      - terminator
       - brisk-menu
       - mate-applet-trash
     packages_uninstall:

@@ -22,10 +22,10 @@ primary-color='#456789'
 secondary-color='#FFFFFF'
 
 [org/mate/desktop/applications/terminal]
-exec='/usr/bin/terminator'
+exec='mate-terminal'
 
 [org/mate/desktop/default-applications/terminal]
-exec='/usr/bin/terminator'
+exec='mate-terminal'
 
 [org/mate/desktop/interface]
 clock-show-date=true
