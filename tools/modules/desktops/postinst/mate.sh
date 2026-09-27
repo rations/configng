@@ -78,6 +78,9 @@ expand=true
 orientation='bottom'
 size=24
 
+[org/mate/panel/menubar]
+icon-name='pivuan'
+
 [org/mate/panel/objects/menu-bar]
 locked=true
 toplevel-id='top'
@@ -156,6 +159,10 @@ GSEOF
 
 #re-compile schemas
 if [ -d /usr/share/glib-2.0/schemas ]; then glib-compile-schemas /usr/share/glib-2.0/schemas; fi
+
+# Pivuan logo on the panel's menu bar (icon-name 'pivuan' above): unthemed
+# icons are looked up in /usr/share/pixmaps.
+if [ -f /usr/share/pixmaps/pivuan/pivuan.png ]; then ln -sfn pivuan/pivuan.png /usr/share/pixmaps/pivuan.png; fi
 
 # List the Pivuan background in Appearance > Background.
 mkdir -p /usr/share/mate-background-properties

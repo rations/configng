@@ -670,7 +670,9 @@ function _module_desktops_install_brave() {
 	# Other desktops (MATE, and xdg-open everywhere) follow the system-wide
 	# mimeapps.list; name the browser's own .desktop file there.
 	local app type
-	app=$(dpkg -L "$pkg" 2> /dev/null | grep -m1 -E '^/usr/share/applications/[^/]+\.desktop$')
+	# The package's own <package>.desktop, else its first one.
+	app=$(dpkg -L "$pkg" 2> /dev/null | grep -m1 -xF "/usr/share/applications/${pkg}.desktop" \
+		|| dpkg -L "$pkg" 2> /dev/null | grep -m1 -E '^/usr/share/applications/[^/]+\.desktop$')
 	if [[ -n "$app" ]]; then
 		app="${app##*/}"
 		touch /etc/xdg/mimeapps.list
