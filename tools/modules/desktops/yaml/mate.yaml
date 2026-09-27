@@ -46,6 +46,20 @@ tiers:
       - mate-indicator-applet
       - mate-indicator-applet-common
 
+# Devuan (sysvinit): applied after the Debian base release's block. Same
+# approach as xfce.yaml. PipeWire is started by systemd user units on Debian;
+# without systemd, PulseAudio (started by the desktop session) is the
+# dependable choice.
+devuan:
+  packages_remove:
+    - pipewire-audio
+    - pipewire-pulse
+    - wireplumber
+  packages:
+    - pulseaudio
+    - pulseaudio-module-bluetooth
+    - mate-polkit             # password dialog for polkit (NetworkManager, disks, shutdown), autostarted in MATE
+
 releases:
   bookworm:
     architectures: [arm64, amd64, armhf]

@@ -313,8 +313,12 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
         if pkg not in packages:
             packages.append(pkg)
 
-    # 4b. Devuan: the `devuan:` blocks, common first, then the DE's.
+    # 4b. Devuan: the `devuan:` blocks, common first, then the DE's. Only
+    #     desktops adapted for Devuan (sysvinit, no systemd) have a `devuan:`
+    #     block; the others are not offered there.
     devuan_removes = set()
+    if devuan and "devuan" not in de_data:
+        is_available = False
     if devuan:
         for src in (common, de_data):
             devuan_data = _as_dict(src.get("devuan"))
