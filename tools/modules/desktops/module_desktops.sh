@@ -613,7 +613,7 @@ function _module_desktops_ifupdown_to_networkmanager() {
 #
 # Devuan (Pivuan): install the browser from Brave's own apt repository, set up
 # the way https://dl.brave.com/install.sh does it (Brave's keyring and deb822
-# source, same file names), and make it XFCE's default web browser.
+# source, same file names), and make it the default web browser.
 # Usage: _module_desktops_install_brave <package>   (e.g. brave-origin)
 # Non-fatal for the caller: on failure the Brave source is removed again so
 # apt keeps working, and the desktop is left without a browser.
@@ -666,6 +666,20 @@ function _module_desktops_install_brave() {
 	touch /etc/xdg/xfce4/helpers.rc
 	sed -i '/^WebBrowser=/d' /etc/xdg/xfce4/helpers.rc
 	echo "WebBrowser=${pkg}" >> /etc/xdg/xfce4/helpers.rc
+
+	# Other desktops (MATE, and xdg-open everywhere) follow the system-wide
+	# mimeapps.list; name the browser's own .desktop file there.
+	local app type
+	app=$(dpkg -L "$pkg" 2> /dev/null | grep -m1 -E '^/usr/share/applications/[^/]+\.desktop$')
+	if [[ -n "$app" ]]; then
+		app="${app##*/}"
+		touch /etc/xdg/mimeapps.list
+		grep -q '^\[Default Applications\]' /etc/xdg/mimeapps.list || printf '[Default Applications]\n' >> /etc/xdg/mimeapps.list
+		for type in text/html application/xhtml+xml x-scheme-handler/http x-scheme-handler/https; do
+			sed -i "\|^${type}=|d" /etc/xdg/mimeapps.list
+			sed -i "/^\[Default Applications\]/a ${type}=${app}" /etc/xdg/mimeapps.list
+		done
+	fi
 	return 0
 }
 

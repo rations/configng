@@ -2,6 +2,8 @@
 set +e
 # overwrite stock lightdm greeter configuration
 if [ -d /etc/armbian/lightdm ]; then cp -R /etc/armbian/lightdm /etc/; fi
+# The shared greeter configuration names XFCE's session; log in to MATE.
+if [ -f /etc/lightdm/lightdm.conf.d/11-armbian.conf ]; then sed -i 's/^user-session=.*/user-session=mate/' /etc/lightdm/lightdm.conf.d/11-armbian.conf; fi
 
 # disable Pulseaudio timer scheduling which does not work with sndhdmi driver
 if [ -f /etc/pulse/default.pa ]; then sed "s/load-module module-udev-detect$/& tsched=0/g" -i /etc/pulse/default.pa; fi
@@ -130,7 +132,8 @@ dconf update
 
 # Override MATE default schema for wallpaper
 mkdir -p /usr/share/glib-2.0/schemas
-cat > /usr/share/glib-2.0/schemas/90-armbian-mate.gschema.override <<- 'GSEOF'
+rm -f /usr/share/glib-2.0/schemas/90-armbian-mate.gschema.override
+cat > /usr/share/glib-2.0/schemas/90-pivuan-mate.gschema.override <<- 'GSEOF'
 [org.mate.background]
 picture-filename='/usr/share/backgrounds/pivuan/pivuan-background.png'
 picture-options='zoom'
@@ -153,3 +156,17 @@ GSEOF
 
 #re-compile schemas
 if [ -d /usr/share/glib-2.0/schemas ]; then glib-compile-schemas /usr/share/glib-2.0/schemas; fi
+
+# List the Pivuan background in Appearance > Background.
+mkdir -p /usr/share/mate-background-properties
+cat > /usr/share/mate-background-properties/pivuan.xml <<- 'XMLEOF'
+<?xml version="1.0"?>
+<!DOCTYPE wallpapers SYSTEM "mate-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Pivuan</name>
+    <filename>/usr/share/backgrounds/pivuan/pivuan-background.png</filename>
+    <options>zoom</options>
+  </wallpaper>
+</wallpapers>
+XMLEOF
