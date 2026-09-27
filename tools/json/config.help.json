@@ -3,7 +3,7 @@
         {
             "id": "Help",
             "description": "About this tool",
-            "help": "What armbian-config is, what each menu covers, and where to get help.",
+            "help": "What pivuan-config is, what each menu covers, and where to get help.",
             "command": [
                 "show_message <<< $(about_armbian_configng)"
             ],

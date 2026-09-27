@@ -1,0 +1,28 @@
+{
+    "_comment": "Pivuan managed bookmarks for Google Chrome. ManagedBookmarks is a mandatory-only policy per Chrome Enterprise docs — it creates a read-only `Managed bookmarks > Pivuan` folder on the bookmarks bar.",
+    "ManagedBookmarks": [
+        {
+            "toplevel_name": "Pivuan"
+        },
+        {
+            "name": "Pivuan",
+            "url": "https://github.com/rations/pivuan"
+        },
+        {
+            "name": "Releases",
+            "url": "https://github.com/rations/pivuan/releases"
+        },
+        {
+            "name": "Issues",
+            "url": "https://github.com/rations/pivuan/issues"
+        },
+        {
+            "name": "Devuan",
+            "url": "https://www.devuan.org"
+        },
+        {
+            "name": "Raspberry Pi documentation",
+            "url": "https://www.raspberrypi.com/documentation/"
+        }
+    ]
+}

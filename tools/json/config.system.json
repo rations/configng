@@ -1047,7 +1047,7 @@
                             ],
                             "status": "Preview",
                             "author": "@igorpecovnik",
-                            "condition": "module_images status >/dev/null",
+                            "condition": "[[ ! -f /etc/devuan_version ]] && module_images status >/dev/null",
                             "help": "What can this tool do."
                         },
                         {
@@ -1060,7 +1060,7 @@
                             ],
                             "status": "Preview",
                             "author": "@igorpecovnik",
-                            "condition": "module_images cache-status",
+                            "condition": "[[ ! -f /etc/devuan_version ]] && module_images cache-status",
                             "help": "Remove cached images"
                         },
                         {
@@ -1068,7 +1068,7 @@
                             "description": "Enable read only filesystem",
                             "short": "Read Only FS",
                             "module": "module_generic",
-                            "prompt": "This will enable Armbian read-only filesystem.\n",
+                            "prompt": "This will enable the read-only root filesystem.\n",
                             "command": [
                                 "module_overlayfs install"
                             ],
@@ -1080,7 +1080,7 @@
                         {
                             "id": "ROO002",
                             "description": "Disable read only filesystem",
-                            "prompt": "This will disable Armbian read-only filesystem.\n",
+                            "prompt": "This will disable the read-only root filesystem.\n",
                             "command": [
                                 "module_overlayfs remove"
                             ],
@@ -1552,29 +1552,29 @@
                     "sub": [
                         {
                             "id": "UPD001",
-                            "description": "Enable Armbian firmware upgrades",
+                            "description": "Enable kernel and firmware upgrades",
                             "short": "Firmware",
                             "module": "module_generic",
-                            "about": "This will enable Armbian kernel/firmware upgrades that are currently put on hold.",
+                            "about": "This will enable kernel and firmware upgrades that are currently put on hold.",
                             "command": [
                                 "module_armbian_firmware unhold"
                             ],
                             "status": "Stable",
                             "author": "@igorpecovnik",
                             "condition": "module_armbian_firmware hold status",
-                            "help": "Enable Armbian firmware upgrades manages whether the Armbian firmware (kernel + u-boot +."
+                            "help": "Allows the kernel, boot loader and firmware packages to be upgraded again."
                         },
                         {
                             "id": "UPD002",
-                            "description": "Disable Armbian firmware upgrades",
-                            "about": "Disable Armbian kernel/firmware upgrades",
+                            "description": "Disable kernel and firmware upgrades",
+                            "about": "Hold the kernel, boot loader and firmware packages at their current versions",
                             "command": [
                                 "module_armbian_firmware hold"
                             ],
                             "status": "Stable",
                             "author": "@igorpecovnik",
                             "condition": "! module_armbian_firmware hold status",
-                            "help": "Disable Armbian firmware upgrades"
+                            "help": "Disable kernel and firmware upgrades"
                         },
                         {
                             "id": "ROLLIN",

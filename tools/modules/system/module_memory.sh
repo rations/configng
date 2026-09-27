@@ -51,7 +51,7 @@ function module_memory () {
 			fi
 
 			echo "Memory management enabled successfully."
-			echo "Use 'armbian-config' → 'System' → 'Storage' → 'Tune Memory' to configure settings."
+			echo "Use 'pivuan-config' → 'System' → 'Storage' → 'Tune Memory' to configure settings."
 		;;
 
 		"${commands[1]}") # remove

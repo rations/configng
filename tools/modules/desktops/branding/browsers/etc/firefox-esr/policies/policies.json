@@ -1,11 +1,11 @@
 {
     "policies": {
         "Homepage": {
-            "URL": "https://www.armbian.com",
+            "URL": "https://github.com/rations/pivuan",
             "Locked": false,
             "StartPage": "homepage"
         },
-        "OverrideFirstRunPage": "https://www.armbian.com/welcome",
+        "OverrideFirstRunPage": "https://github.com/rations/pivuan",
         "OverridePostUpdatePage": "",
         "DisableTelemetry": true,
         "DisableFirefoxStudies": true,
@@ -14,28 +14,34 @@
         "DisplayBookmarksToolbar": "always",
         "Bookmarks": [
             {
-                "Title": "Armbian",
-                "URL": "https://www.armbian.com",
+                "Title": "Pivuan",
+                "URL": "https://github.com/rations/pivuan",
                 "Placement": "toolbar",
-                "Folder": "Armbian"
+                "Folder": "Pivuan"
             },
             {
-                "Title": "Documentation",
-                "URL": "https://docs.armbian.com",
+                "Title": "Releases",
+                "URL": "https://github.com/rations/pivuan/releases",
                 "Placement": "toolbar",
-                "Folder": "Armbian"
+                "Folder": "Pivuan"
             },
             {
-                "Title": "Forum",
-                "URL": "https://forum.armbian.com",
+                "Title": "Issues",
+                "URL": "https://github.com/rations/pivuan/issues",
                 "Placement": "toolbar",
-                "Folder": "Armbian"
+                "Folder": "Pivuan"
             },
             {
-                "Title": "GitHub",
-                "URL": "https://github.com/armbian",
+                "Title": "Devuan",
+                "URL": "https://www.devuan.org",
                 "Placement": "toolbar",
-                "Folder": "Armbian"
+                "Folder": "Pivuan"
+            },
+            {
+                "Title": "Raspberry Pi documentation",
+                "URL": "https://www.raspberrypi.com/documentation/",
+                "Placement": "toolbar",
+                "Folder": "Pivuan"
             }
         ]
     }

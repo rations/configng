@@ -7,6 +7,7 @@
                 {
                     "id": "Armbian",
                     "description": "Armbian infrastructure services",
+                    "condition": "[[ ! -f /etc/devuan_version ]]",
                     "sub": [
                         {
                             "id": "ART001",
@@ -1341,7 +1342,7 @@
                         },
                         {
                             "id": "PVE001",
-                            "description": "Proxmox VE virtualization platform (keeps the Armbian kernel)",
+                            "description": "Proxmox VE virtualization platform (keeps the current kernel)",
                             "short": "Proxmox VE",
                             "module": "module_proxmox",
                             "command": [

@@ -64,14 +64,14 @@
                         },
                         {
                             "id": "NEA003",
-                            "description": "Revert to Armbian defaults",
+                            "description": "Revert to default network settings",
                             "command": [
                                 "module_default_network_config"
                             ],
                             "status": "Stable",
                             "author": "@igorpecovnik",
                             "condition": "",
-                            "help": "Revert to Armbian defaults"
+                            "help": "Revert to default network settings"
                         },
                         {
                             "id": "NEA004",

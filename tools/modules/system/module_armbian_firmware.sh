@@ -402,7 +402,7 @@ function module_armbian_firmware() {
 			# even with a valid kernel present.
 			if ! dpkg-query -W -f='${db:Status-Status}\n' 'linux-image-*' 2>/dev/null | grep -q '^installed' \
 				|| ! ls -1 /boot 2>/dev/null | grep -qE '^(vmlinuz-|Image|zImage)'; then
-				echo "CRITICAL: no bootable kernel present after switch — do NOT reboot; reinstall a kernel via armbian-config (System > Firmware) first."
+				echo "CRITICAL: no bootable kernel present after switch — do NOT reboot; reinstall a kernel via pivuan-config (System > Firmware) first."
 				return 1
 			fi
 

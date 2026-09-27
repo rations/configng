@@ -1,0 +1,12 @@
+{
+    "_comment": "Pivuan default Google Chrome policies. Same schema as Chromium. `recommended/` lets the user change these after first run. ManagedBookmarks lives in the sibling managed/ file (mandatory-only per Chrome Enterprise docs).",
+    "RestoreOnStartup": 4,
+    "RestoreOnStartupURLs": [
+        "https://github.com/rations/pivuan"
+    ],
+    "HomepageLocation": "https://github.com/rations/pivuan",
+    "HomepageIsNewTabPage": false,
+    "ShowHomeButton": true,
+    "BookmarkBarEnabled": true,
+    "MetricsReportingEnabled": false
+}

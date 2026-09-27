@@ -1,14 +1,14 @@
 module_options+=(
 	["module_desktop_branding,author"]="@igorpecovnik"
 	["module_desktop_branding,feature"]="module_desktop_branding"
-	["module_desktop_branding,desc"]="Install Armbian desktop branding assets"
+	["module_desktop_branding,desc"]="Install Pivuan desktop branding assets"
 	["module_desktop_branding,example"]="module_desktop_branding xfce"
 	["module_desktop_branding,status"]="Active"
 	["module_desktop_branding,arch"]="arm64 amd64 armhf riscv64"
 )
 
 #
-# Install Armbian desktop branding (wallpapers, icons, greeter config, skel, postinst)
+# Install Pivuan desktop branding (wallpapers, icons, greeter config, skel, postinst)
 # Usage: module_desktop_branding <de_name>
 #
 function module_desktop_branding() {
@@ -19,7 +19,7 @@ function module_desktop_branding() {
 		help|"")
 			echo "Usage: module_desktop_branding <de_name>"
 			echo ""
-			echo "Install Armbian branding assets for a desktop environment:"
+			echo "Install Pivuan branding assets for a desktop environment:"
 			echo "  - Greeter configuration (LightDM, SDDM)"
 			echo "  - Default user skeleton configs"
 			echo "  - Wallpapers and login wallpapers"
@@ -95,7 +95,7 @@ function module_desktop_branding() {
 			rm -f /usr/share/icons/hicolor/256x256/apps/armbian-logo.png
 
 			# Browser / mail branding — system-wide policy files that
-			# set the Armbian welcome page, homepage, and bookmarks for
+			# set the Pivuan project page as homepage, and bookmarks for
 			# browsers, and disable telemetry / studies for Mozilla apps.
 			# Files for apps that aren't installed sit harmlessly in
 			# /etc/<app>/policies/ (each app only reads its own dir at
@@ -104,12 +104,12 @@ function module_desktop_branding() {
 			# is a single combined file per app.
 			# Single overlay tree under branding/browsers/etc/ rsync'd
 			# into /etc/ — each app's canonical drop-in path:
-			#   chromium:    /etc/chromium/policies/recommended/armbian.json   (homepage, first-run, etc.)
-			#                /etc/chromium/policies/managed/armbian.json       (ManagedBookmarks — mandatory-only policy)
+			#   chromium:    /etc/chromium/policies/recommended/pivuan.json    (homepage, first-run, etc.)
+			#                /etc/chromium/policies/managed/pivuan.json        (ManagedBookmarks — mandatory-only policy)
 			#                /etc/chromium/master_preferences                  (suppress bundled defaults)
-			#                /etc/chromium.d/armbian-flags                     (enable VPU hardware video decoder)
-			#   chrome:      /etc/opt/chrome/policies/recommended/armbian.json
-			#                /etc/opt/chrome/policies/managed/armbian.json
+			#                /etc/chromium.d/pivuan-flags                      (enable VPU hardware video decoder)
+			#   chrome:      /etc/opt/chrome/policies/recommended/pivuan.json
+			#                /etc/opt/chrome/policies/managed/pivuan.json
 			#                /etc/opt/chrome/master_preferences
 			#   firefox:     /etc/firefox/policies/policies.json
 			#   firefox-esr: /etc/firefox-esr/policies/policies.json
@@ -119,7 +119,7 @@ function module_desktop_branding() {
 			# import on new profiles (xtradeb chromium ships Debian /
 			# Ubuntu / XtraDeb shortcuts; Google Chrome ships its own
 			# defaults). Existing profiles keep what they already have.
-			# The Armbian "Managed bookmarks" folder still appears via
+			# The Pivuan "Managed bookmarks" folder still appears via
 			# the policy file regardless — it lives in a separate read-
 			# only space.
 			if [[ -d "$desktop_dir/branding/browsers/etc" ]]; then

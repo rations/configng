@@ -1,4 +1,4 @@
-# Armbian: enable hardware VPU video decoder.
+# Pivuan: enable hardware VPU video decoder.
 #
 # Without this flag chromium falls back to software decoding even
 # when /dev/video-dec* is exposed by the BSP udev rules — works,

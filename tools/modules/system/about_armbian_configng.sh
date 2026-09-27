@@ -16,9 +16,9 @@ module_options+=(
 #
 function about_armbian_configng() {
 
-	echo "Armbian Config: The Next Generation"
+	echo "Pivuan Config"
 	echo ""
-	echo "Configures an installed Armbian system: kernel and firmware, storage,"
+	echo "Configures an installed Pivuan system: kernel and firmware, storage,"
 	echo "network, users and services, plus optional third-party software."
 	echo ""
 	echo "  System         kernel, firmware, storage, users, services"
@@ -26,10 +26,10 @@ function about_armbian_configng() {
 	echo "  Localisation   locale, timezone, keyboard, hostname"
 	echo "  Software       install and remove curated applications"
 	echo ""
-	echo "Every entry is scriptable:  armbian-config --api <module> <command>"
+	echo "Every entry is scriptable:  pivuan-config --api <module> <command>"
 	echo ""
-	echo "Docs    https://docs.armbian.com/armbian-config/"
-	echo "Issues  https://github.com/armbian/configng/issues"
-	echo "Donate  https://github.com/sponsors/armbian"
+	echo "Docs    pivuan-config --doc   or   https://github.com/rations/pivuan"
+	echo "Issues  https://github.com/rations/pivuan/issues"
+	echo "Based on armbian-config (https://github.com/armbian/configng)"
 
 }

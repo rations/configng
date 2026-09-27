@@ -3,6 +3,6 @@
         "DisableTelemetry": true,
         "DisableFirefoxStudies": true,
         "AppAutoUpdate": false,
-        "StartPageURL": "https://www.armbian.com"
+        "StartPageURL": "https://github.com/rations/pivuan"
     }
 }

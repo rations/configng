@@ -72,6 +72,6 @@ function adjust_motd() {
 	reset
 	clear
 	find /etc/update-motd.d/. -type f -executable | sort | bash
-	echo "Press any key to return to armbian-config"
+	echo "Press any key to return to pivuan-config"
 	read
 }
