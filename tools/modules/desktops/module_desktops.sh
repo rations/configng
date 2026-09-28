@@ -1029,10 +1029,21 @@ function module_desktops() {
 					fi
 				elif [[ "$DESKTOP_DM" == "none" ]]; then
 					# No display manager (Pivuan Audio: its postinst puts the xlogin
-					# login screen on tty1 in /etc/inittab). Reloading inittab now
-					# would end a login on tty1, which may be the one running this
-					# install, so the login screen comes with the next boot.
-					echo "${DESKTOP_DESC}: reboot to start the graphical login on tty1."
+					# login screen on tty1 in /etc/inittab). Show it now, as a display
+					# manager would: init reloads /etc/inittab and replaces tty1's text
+					# login with the login screen, as it does at boot. That ends a text
+					# session on tty1, which may be the one running this install, so a
+					# job outside this session does it once this command has finished.
+					# Logging in there applies the new groups and realtime limits.
+					if ! _desktop_in_container && grep -q '^[^#]*xlogin-launcher' /etc/inittab 2> /dev/null \
+						&& [[ "$(cat /proc/1/comm 2> /dev/null)" == init ]] && command -v telinit > /dev/null; then
+						echo "${DESKTOP_DESC} installed. The login screen starts on tty1 in a few seconds."
+						_desktop_outside_session setsid -f sh -c \
+							'sleep 3; telinit q; sleep 1; command -v chvt > /dev/null && chvt 1' \
+							< /dev/null > /dev/null 2>&1 || true
+					else
+						echo "${DESKTOP_DESC}: reboot to start the graphical login on tty1."
+					fi
 				elif ! _desktop_in_container; then
 					# sysvinit (Devuan / Pivuan): the display manager's init script starts it
 					# in the default runlevel, so there is no target to switch. Make sure it is

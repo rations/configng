@@ -7,13 +7,15 @@
 <JWM>
 
     <!-- Programs started with the session. JWM does not run XDG autostart
-         entries, so the tray applets, the polkit password dialog and the
-         Audio-Gui restore (PulseAudio-protocol bridges for ordinary apps)
-         are started here. -->
+         entries, so they are started here: the compositor (picom: smooth window
+         moves, no redraw trails or tearing; GPU backend, else the CPU one), the
+         polkit password dialog, PulseAudio with its tray volume icon (it also
+         plays into JACK while JACK runs), and the network and Bluetooth applets. -->
+    <StartupCommand>picom -b --backend glx --vsync || picom -b --backend xrender --vsync</StartupCommand>
     <StartupCommand>lxpolkit</StartupCommand>
+    <StartupCommand>/usr/lib/pivuan/pulse-session</StartupCommand>
     <StartupCommand>nm-applet</StartupCommand>
     <StartupCommand>blueman-applet</StartupCommand>
-    <StartupCommand>audio-gui --restore</StartupCommand>
 
     <!-- The Pivuan menu: tray button, left or right click on the desktop, Alt+F1. -->
     <RootMenu onroot="13">
@@ -22,7 +24,7 @@
         <Program icon="brave-origin" label="Web Browser">brave-origin-stable</Program>
         <Separator/>
         <Menu icon="audio-card" label="Audio">
-            <Program icon="audio-gui" label="Audio Control">audio-gui</Program>
+            <Program icon="multimedia-volume-control" label="Volume Control">pavucontrol</Program>
             <Program icon="audio-card" label="Jack Graph">jack-graph</Program>
             <Program icon="jackdaw" label="JackDAW">jackdaw</Program>
             <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
@@ -65,7 +67,8 @@
         <Spacer width="4"/>
     </Tray>
 
-    <!-- Look: the greys and red of the Pivuan artwork. -->
+    <!-- Look: the greys of the Pivuan artwork, and the gold of NAMp-rations. Text on
+         gold is dark: white on this gold is hard to read. -->
     <WindowStyle decorations="flat">
         <Font>DejaVu Sans-10:bold</Font>
         <Width>3</Width>
@@ -76,8 +79,8 @@
         <Outline>#1E1E1E</Outline>
         <Opacity>1.0</Opacity>
         <Active>
-            <Foreground>#FFFFFF</Foreground>
-            <Background>#B0021C</Background>
+            <Foreground>#1E1E1E</Foreground>
+            <Background>#B88B4C</Background>
             <Outline>#1E1E1E</Outline>
             <Opacity>1.0</Opacity>
         </Active>
@@ -93,8 +96,8 @@
         <Foreground>#ECECEC</Foreground>
         <Background>#2B2B2B</Background>
         <Active>
-            <Foreground>#FFFFFF</Foreground>
-            <Background>#B0021C</Background>
+            <Foreground>#1E1E1E</Foreground>
+            <Background>#B88B4C</Background>
         </Active>
     </TaskListStyle>
     <PagerStyle>
@@ -102,8 +105,8 @@
         <Background>#2B2B2B</Background>
         <Text>#ECECEC</Text>
         <Active>
-            <Foreground>#D0021F</Foreground>
-            <Background>#B0021C</Background>
+            <Foreground>#D4A865</Foreground>
+            <Background>#B88B4C</Background>
         </Active>
     </PagerStyle>
     <MenuStyle decorations="flat">
@@ -112,8 +115,8 @@
         <Background>#333333</Background>
         <Outline>#1E1E1E</Outline>
         <Active>
-            <Foreground>#FFFFFF</Foreground>
-            <Background>#B0021C</Background>
+            <Foreground>#1E1E1E</Foreground>
+            <Background>#B88B4C</Background>
         </Active>
         <Opacity>1.0</Opacity>
     </MenuStyle>
@@ -123,6 +126,14 @@
         <Background>#ECECEC</Background>
     </PopupStyle>
 
+    <!-- Icons: JWM looks only in these folders, in this order. The Numix theme
+         first (as on MATE and XFCE), then the programs' own icons. -->
+    <IconPath>/usr/share/icons/Numix/48/apps</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/categories</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/devices</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/places</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/actions</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/status</IconPath>
     <IconPath>/usr/share/icons/hicolor/48x48/apps</IconPath>
     <IconPath>/usr/share/icons/hicolor/64x64/apps</IconPath>
     <IconPath>/usr/share/icons/hicolor/128x128/apps</IconPath>

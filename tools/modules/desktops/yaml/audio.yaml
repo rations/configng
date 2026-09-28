@@ -1,5 +1,5 @@
 name: audio
-description: "Pivuan Audio - JWM desktop for audio production (JACK, no PulseAudio or PipeWire)"
+description: "Pivuan Audio - JWM desktop for audio production (JACK and PulseAudio, no PipeWire)"
 # No display manager: postinst/audio.sh puts the xlogin login screen
 # (simple-login-gui) on tty1 in /etc/inittab, and it starts ~/.xinitrc (JWM).
 display_manager: none
@@ -10,28 +10,20 @@ status: supported
 devuan_only: true
 inherit_common: false
 
-# X server: XLibre from xlibre-debian's Devuan repository. Its key is pinned:
-# pivuan-config refuses the download if it is any other key. Check it on a
-# machine with XLibre: gpg --show-keys /usr/share/keyrings/NexusSfan.pgp
-repo:
-  url: https://xlibre-debian.github.io/devuan/
-  key_url: https://mrchicken.nexussfan.cz/publickey.asc
-  key_fingerprint: 22075A919DAEB177E874C5D1D79CD6F1B52394FA
-  keyring: /usr/share/keyrings/NexusSfan.pgp
-  suite: main
-  components: [stable]
+# X server: XLibre built for Devuan excalibur without backports, from the
+# Pivuan apt repository (rations/pivuan, branch xlibre, xlibre/). The Pivuan
+# source is already on every Pivuan image, so no other repository is added.
 
 tiers:
   minimal:
     packages:
       # Window manager first: the primary package that marks this desktop installed.
       - jwm
-      # X server: XLibre's core (with the modesetting driver the Pi uses, 99-vc4.conf)
-      # and libinput, not the xlibre/xserver-xlibre metapackages with every video
-      # driver. keyboard-configuration gives X the keyboard layout set in the wizard.
+      # X server: XLibre's core (with the modesetting driver the Pi uses, 99-vc4.conf,
+      # and glamor) and libinput, not the metapackages with every video driver.
+      # keyboard-configuration gives X the keyboard layout set in the wizard.
       - xserver-xlibre-core
       - xserver-xlibre-input-libinput
-      - xlibre-archive-keyring
       - x11-xkb-utils
       - keyboard-configuration
       # Session
@@ -39,6 +31,7 @@ tiers:
       - x11-xserver-utils
       - dbus-x11
       - libgl1-mesa-dri          # Mesa (V3D) for the modesetting driver's GPU acceleration
+      - picom                    # compositor: smooth window moves, no redraw trails or tearing
       # Login screen on tty1 (Pivuan apt repository); pulls in seatd
       - simple-login-gui
       # Desktop programs
@@ -51,6 +44,7 @@ tiers:
       - lxappearance
       - xdg-utils
       - adwaita-icon-theme
+      - numix-icon-theme         # the icons of the MATE and XFCE desktops, in the menu and pcmanfm
       - fonts-dejavu-core
       # Disks, removable media and trash in pcmanfm
       - udisks2
@@ -60,14 +54,19 @@ tiers:
       - network-manager-gnome
       - blueman
       - bluez
-      # Audio: JACK and ALSA. Ordinary programs (browser, media player) reach JACK
-      # through Audio-Gui's PulseAudio-protocol bridges, so they need libpulse0 only.
+      # Audio: JACK for the audio programs, PulseAudio for everything else (HDMI,
+      # Bluetooth, the browser). While JACK runs, PulseAudio hands it the sound
+      # card and plays into JACK (/usr/lib/pivuan/pulse-jack, postinst/audio.sh).
       - jackd2
       - alsa-utils
       - alsa-ucm-conf
-      - libpulse0
+      - pulseaudio
+      - pulseaudio-utils
+      - pulseaudio-module-bluetooth
+      - pulseaudio-module-jack
+      - pavucontrol
+      - pasystray
       # Pivuan audio applications (Pivuan apt repository)
-      - audio-gui
       - jack-graph
       - jackdaw
       - namp-rations

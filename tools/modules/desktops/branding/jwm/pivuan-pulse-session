@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# Pivuan Audio: PulseAudio in the desktop session, and PulseAudio into JACK while JACK runs.
+# Installed as /usr/lib/pivuan/pulse-session and started by JWM (/etc/jwm/pivuan.jwmrc).
+#
+# PulseAudio plays the sound of everything that is not a JACK program (browser, media player)
+# to the card, HDMI or Bluetooth device picked in the tray icon (pasystray) or Volume Control.
+# When JACK starts (Jack Graph runs jackd), jackd asks PulseAudio for the sound card over D-Bus
+# and PulseAudio lets it go; this script then loads PulseAudio's JACK sink and source and makes
+# them the default, so those programs play into JACK. When JACK stops, the JACK modules unload
+# themselves; the previous default output and input are put back.
+#
+# JACK_NO_START_SERVER: PulseAudio's JACK modules must never start a JACK server of their own.
+# PulseAudio is started from here so that it inherits this.
+JACK_NO_START_SERVER=1
+export JACK_NO_START_SERVER
+
+command -v pulseaudio > /dev/null 2>&1 || exit 0
+start-pulseaudio-x11 > /dev/null 2>&1
+command -v pasystray > /dev/null 2>&1 && pasystray > /dev/null 2>&1 &
+
+uid="$(id -u)"
+saved_sink=""
+saved_source=""
+while :; do
+	sleep 2
+	if pgrep -u "${uid}" -x jackd > /dev/null 2>&1; then
+		pactl list short modules 2> /dev/null | grep -q 'module-jack-sink' && continue
+		# JACK has just started (or is not ready yet: tried again in 2 seconds).
+		sink="$(pactl get-default-sink 2> /dev/null)"
+		source="$(pactl get-default-source 2> /dev/null)"
+		if pactl load-module module-jack-sink channels=2 connect=yes > /dev/null 2>&1; then
+			[ "${sink}" = jack_out ] || saved_sink="${sink}"
+			[ "${source}" = jack_in ] || saved_source="${source}"
+			pactl load-module module-jack-source channels=2 connect=yes > /dev/null 2>&1
+			pactl set-default-sink jack_out > /dev/null 2>&1
+			pactl set-default-source jack_in > /dev/null 2>&1
+		fi
+	elif [ -n "${saved_sink}${saved_source}" ]; then
+		# JACK has stopped: PulseAudio takes the card back; restore the defaults once it has.
+		if [ -n "${saved_sink}" ] && pactl set-default-sink "${saved_sink}" > /dev/null 2>&1; then
+			saved_sink=""
+		fi
+		if [ -n "${saved_source}" ] && pactl set-default-source "${saved_source}" > /dev/null 2>&1; then
+			saved_source=""
+		fi
+	fi
+done

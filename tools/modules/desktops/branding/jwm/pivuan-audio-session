@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Pivuan Audio: per-user setup at each login, run by ~/.xinitrc before JWM starts.
+# Installed as /usr/lib/pivuan/audio-session.
+#
+# Creates the usual folders and the audio ones (NAM captures, impulse responses, VST3 and LV2
+# plug-ins) if they are missing, points the XDG folders at them (the browser saves to
+# Downloads), and bookmarks them in pcmanfm's side pane (the plug-in folders are hidden ones,
+# so the bookmarks are the way to reach them). Files that exist are left alone: the user's
+# own changes stay.
+#
+[ -n "${HOME}" ] && [ -d "${HOME}" ] || exit 0
+
+for dir in Downloads Documents Music Videos NAM "Impulse Responses" .vst3 .lv2; do
+	[ -d "${HOME}/${dir}" ] || mkdir -p "${HOME}/${dir}"
+done
+
+config="${XDG_CONFIG_HOME:-${HOME}/.config}"
+mkdir -p "${config}/gtk-3.0"
+
+if [ ! -e "${config}/user-dirs.dirs" ]; then
+	cat > "${config}/user-dirs.dirs" << 'EOF'
+# The user's folders (xdg-user-dirs format). A folder set to "$HOME/" is not used.
+XDG_DESKTOP_DIR="$HOME/"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_TEMPLATES_DIR="$HOME/"
+XDG_PUBLICSHARE_DIR="$HOME/"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/"
+XDG_VIDEOS_DIR="$HOME/Videos"
+EOF
+fi
+
+# pcmanfm (GTK) bookmarks: file URIs, with the space in "Impulse Responses" escaped.
+if [ ! -e "${config}/gtk-3.0/bookmarks" ]; then
+	home_uri="file://$(printf '%s' "${HOME}" | sed 's/ /%20/g')"
+	{
+		echo "${home_uri}/Downloads"
+		echo "${home_uri}/Documents"
+		echo "${home_uri}/Music"
+		echo "${home_uri}/Videos"
+		echo "${home_uri}/NAM"
+		echo "${home_uri}/Impulse%20Responses Impulse Responses"
+		echo "${home_uri}/.vst3 VST3 plug-ins"
+		echo "${home_uri}/.lv2 LV2 plug-ins"
+	} > "${config}/gtk-3.0/bookmarks"
+fi
+exit 0

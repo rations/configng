@@ -228,7 +228,7 @@
                             "status": "Stable",
                             "author": "@rations",
                             "condition": "! module_desktops installed && module_desktop_supported audio",
-                            "help": "Install Pivuan Audio: JWM on XLibre with JACK and the Pivuan audio applications, no PulseAudio or PipeWire. Login screen on tty1 after a reboot."
+                            "help": "Install Pivuan Audio: JWM on XLibre with JACK, PulseAudio and the Pivuan audio applications, no PipeWire. The login screen on tty1 appears when the install finishes."
                         },
                         {
                             "id": "I3WM01",

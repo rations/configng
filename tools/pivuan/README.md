@@ -86,7 +86,7 @@ When it finishes, the login screen appears. Log in with the user you created in 
 
 ### Pivuan Audio
 
-A desktop for audio production on the Raspberry Pi 5, with JACK and without PulseAudio or
+A desktop for audio production on the Raspberry Pi 5, with JACK and PulseAudio and without
 PipeWire:
 
 ```sh
@@ -95,20 +95,24 @@ sudo pivuan-config --cmd AUDI01    # Pivuan Audio
 
 It installs:
 
-- **JWM** on the **XLibre** X server (from the
-  [xlibre-debian](https://xlibre-debian.github.io/devuan/) repository; its signing key is
-  checked against a pinned fingerprint),
-- the **xlogin** login screen on tty1 instead of a display manager (from the next boot;
-  tty2 to tty6 keep their text login),
+- **JWM** on the **XLibre** X server, built for Devuan excalibur (no backports) and installed
+  from the Pivuan apt repository, with the **picom** compositor for smooth window moves,
+- the **xlogin** login screen on tty1 instead of a display manager (it appears as soon as the
+  install finishes; tty2 to tty6 keep their text login),
 - **JACK** with realtime scheduling for the `audio` group, and the Pivuan audio applications
-  from the Pivuan apt repository: Audio-Gui (mixer and routing; it also carries the sound of
-  the browser and media player to JACK), Jack Graph, JackDAW, NAMp, NAMix, lvtuner, DRUMix
-  and CPU Power,
-- lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance,
+  from the Pivuan apt repository: Jack Graph, JackDAW, NAMp, NAMix, lvtuner, DRUMix and
+  CPU Power,
+- **PulseAudio** for everything else: HDMI, Bluetooth speakers and headphones, the browser and
+  media player, with a volume icon in the tray (pasystray) and Volume Control (pavucontrol).
+  While JACK runs, PulseAudio lets it have the sound card and plays into JACK instead; when
+  JACK stops, it takes the card back,
+- lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance, with the Numix icons,
+- the folders Downloads, Documents, Music, Videos, NAM, Impulse Responses, `.vst3` and `.lv2`
+  in each home, bookmarked in pcmanfm,
 - **NetworkManager** and **blueman** in the tray, and **Brave Origin**.
 
-Reboot when it finishes. The menu is on the Pivuan button in the tray, and on a click on the
-desktop. Each user's `~/.jwmrc` includes `/etc/jwm/pivuan.jwmrc`; add your own settings to
+The menu is on the Pivuan button in the tray, and on a click on the desktop. Each user's
+`~/.jwmrc` includes `/etc/jwm/pivuan.jwmrc`; add your own settings to
 `~/.jwmrc`. `sudo pivuan-config --cmd AUDI02` removes it and brings back the text login.
 
 ## pivuan-config

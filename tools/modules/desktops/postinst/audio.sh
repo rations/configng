@@ -25,13 +25,33 @@ cat > /etc/skel/.jwmrc << 'EOF'
 </JWM>
 EOF
 
-# 2. The session xlogin starts: ~/.xinitrc. dbus-run-session gives the
-#    session a D-Bus bus (pcmanfm's trash and mounts, nm-applet, blueman).
+# 2. The session xlogin starts: ~/.xinitrc. /usr/lib/pivuan/audio-session makes
+#    the user's folders and pcmanfm bookmarks; dbus-run-session gives the
+#    session a D-Bus bus (pcmanfm's trash and mounts, nm-applet, blueman,
+#    PulseAudio, JACK's claim on the sound card). /usr/lib/pivuan/pulse-session
+#    (started by JWM) runs PulseAudio and hands it over to JACK while JACK runs.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-audio-session" /usr/lib/pivuan/audio-session
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-pulse-session" /usr/lib/pivuan/pulse-session
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
+[ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session
 exec dbus-run-session jwm
 EOF
 chmod 0755 /etc/skel/.xinitrc
+
+#    GTK programs (pcmanfm, Volume Control, file dialogs) use the Numix icons,
+#    as on MATE and XFCE. The theme stays GTK's own; lxappearance changes both.
+mkdir -p /etc/skel/.config/gtk-3.0 /etc/skel/.config/gtk-4.0
+for gtk in gtk-3.0 gtk-4.0; do
+	printf '[Settings]\ngtk-icon-theme-name=Numix\n' > "/etc/skel/.config/${gtk}/settings.ini"
+done
+printf 'gtk-icon-theme-name="Numix"\n' > /etc/skel/.gtkrc-2.0
+
+#    PulseAudio: the Pi's HDMI audio needs timer-based scheduling off (as
+#    postinst/xfce.sh does for the same reason).
+if [ -f /etc/pulse/default.pa ]; then
+	sed -i 's/^load-module module-udev-detect$/& tsched=0/' /etc/pulse/default.pa
+fi
 
 # 3. The login screen. /etc/xlogin.conf is read by xlogin-launcher at boot;
 #    xlogin itself rewrites single keys in it (the background picked in its
