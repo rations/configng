@@ -1328,6 +1328,7 @@
                             ],
                             "status": "Stable",
                             "author": "@igorpecovnik",
+                            "condition": "[[ ! -f /etc/devuan_version ]]",
                             "help": "Armbian defaults assume an SBC on a memory card; pick sbc, balanced, desktop, builder or nas"
                         },
                         {
@@ -1340,7 +1341,7 @@
                             ],
                             "status": "Stable",
                             "author": "@igorpecovnik",
-                            "condition": "module_tuning_profile status >/dev/null",
+                            "condition": "[[ ! -f /etc/devuan_version ]] && module_tuning_profile status >/dev/null",
                             "help": "Display which profile is active and the values currently in effect"
                         }
                     ],

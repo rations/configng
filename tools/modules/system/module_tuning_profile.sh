@@ -504,6 +504,12 @@ function _tp_active() {
 function module_tuning_profile() {
 	local title="Tuning Profiles"
 
+	# Devuan (Pivuan): the profile's CPU bias is a systemd unit, and there is no systemd.
+	if [[ -f /etc/devuan_version ]]; then
+		echo "Tuning profiles need systemd; they are not available on Devuan." >&2
+		return 1
+	fi
+
 	local commands
 	IFS=' ' read -r -a commands <<< "${module_options["module_tuning_profile,example"]}"
 
