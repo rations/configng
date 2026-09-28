@@ -10,11 +10,11 @@
          entries itself, so they are started here: the user's own autostart
          entries (~/.config/autostart, such as the screen layout saved by
          lxrandr), the compositor (picom, /etc/pivuan/picom.conf: smooth window
-         moves, no redraw trails or tearing; GPU backend, else the CPU one), the
+         moves, no redraw trails or tearing), the
          polkit password dialog, PulseAudio (it also plays into JACK while JACK
          runs), and the network and Bluetooth applets. -->
     <StartupCommand>/usr/lib/pivuan/autostart</StartupCommand>
-    <StartupCommand>picom -b --config /etc/pivuan/picom.conf || picom -b --config /etc/pivuan/picom.conf --backend xrender</StartupCommand>
+    <StartupCommand>picom -b --config /etc/pivuan/picom.conf</StartupCommand>
     <StartupCommand>lxpolkit</StartupCommand>
     <StartupCommand>/usr/lib/pivuan/pulse-session</StartupCommand>
     <StartupCommand>nm-applet</StartupCommand>
@@ -68,7 +68,7 @@
         <Pager labeled="true"/>
         <TaskList maxwidth="240"/>
         <Dock/>
-        <TrayButton icon="audio-volume-high" popup="Volume Control (scroll to change the volume)">
+        <TrayButton icon="audio-speakers" popup="Volume Control (scroll to change the volume)">
             <Button mask="123">exec:pavucontrol</Button>
             <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
             <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
@@ -170,7 +170,9 @@
     <FocusModel>click</FocusModel>
     <SnapMode distance="10">border</SnapMode>
     <MoveMode>opaque</MoveMode>
-    <ResizeMode>opaque</ResizeMode>
+    <!-- Resizing shows an outline; the window redraws once at the end (no lines
+         from redrawing at every step). -->
+    <ResizeMode>outline</ResizeMode>
 
     <!-- Keys -->
     <Key key="Up">up</Key>
