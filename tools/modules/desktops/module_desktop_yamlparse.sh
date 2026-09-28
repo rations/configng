@@ -13,7 +13,7 @@ module_options+=(
 # Sets: DESKTOP_PACKAGES, DESKTOP_PACKAGES_UNINSTALL, DESKTOP_PRIMARY_PKG,
 #       DESKTOP_DM, DESKTOP_STATUS, DESKTOP_AVAILABLE, DESKTOP_DESC,
 #       DESKTOP_TIER, DESKTOP_REPO_URL, DESKTOP_REPO_KEY_URL,
-#       DESKTOP_REPO_KEYRING, DESKTOP_BRAVE_PKG (Devuan)
+#       DESKTOP_REPO_KEYRING, DESKTOP_REPO_KEY_FINGERPRINT, DESKTOP_BRAVE_PKG (Devuan)
 #
 # tier defaults to 'minimal' when omitted, so callers that only need
 # the primary package or display manager (status checks, listing) can
@@ -63,6 +63,7 @@ function module_desktop_yamlparse() {
 			DESKTOP_REPO_URL=""
 			DESKTOP_REPO_KEY_URL=""
 			DESKTOP_REPO_KEYRING=""
+			DESKTOP_REPO_KEY_FINGERPRINT=""
 
 			local _output
 			_output=$(python3 "$parser" "$yaml_dir" "$de" "$release" "$arch" --tier "$tier" 2>&1) || {

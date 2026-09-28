@@ -47,6 +47,7 @@ Output (bash eval-friendly):
   DESKTOP_REPO_URL="..."       (optional, for custom repos)
   DESKTOP_REPO_KEY_URL="..."   (optional)
   DESKTOP_REPO_KEYRING="..."   (optional)
+  DESKTOP_REPO_KEY_FINGERPRINT="..." (optional; the key must be exactly this one)
   DESKTOP_REPO_SUITES_COUNT="N" (optional; number of source lines to emit)
   DESKTOP_REPO_SUITE_<n>="..."  (for n in 0..N-1)
   DESKTOP_REPO_COMPONENTS="..." (optional, space-separated; defaults to "main")
@@ -72,6 +73,31 @@ TIERS_IN_ORDER = ("minimal", "mid", "full")
 # blocks of common.yaml and the per-DE YAML (packages that need systemd, or
 # that differ on a sysvinit system).
 DEVUAN_BASE = {"daedalus": "bookworm", "excalibur": "trixie", "freia": "forky", "ceres": "sid"}
+
+
+def _available(de_data, release, arch, devuan):
+    """Is the desktop offered on this release (Debian base name) and arch?
+
+    The DE's `releases.<release>.architectures` must list the arch. On Devuan
+    the DE also needs a `devuan:` block (only desktops adapted for sysvinit
+    are offered there); `devuan_only: true` offers it on Devuan alone.
+    """
+    releases = _as_dict(de_data.get("releases"))
+    archs = _as_list(_as_dict(releases.get(release)).get("architectures"))
+    if arch not in archs or release not in releases:
+        return False
+    if devuan:
+        return "devuan" in de_data
+    return de_data.get("devuan_only") is not True
+
+
+def _load_common_for(yaml_dir, de_data):
+    """common.yaml, or nothing for a DE with `inherit_common: false` (its
+    YAML then lists every package itself: no common tiers, release blocks,
+    tier_overrides, browser or `devuan:` defaults)."""
+    if de_data.get("inherit_common") is False:
+        return {}
+    return load_common(yaml_dir)
 
 
 def _debian_base(release):
@@ -268,7 +294,7 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
         print(f"Error: invalid YAML in '{de_name}'", file=sys.stderr)
         sys.exit(1)
 
-    common = load_common(yaml_dir)
+    common = _load_common_for(yaml_dir, de_data)
 
     # 1. Walk tiers from minimal -> target. At each step, merge the
     #    tier's packages from common and the DE, then apply both
@@ -303,8 +329,7 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
 
     releases = _as_dict(de_data.get("releases"))
     release_data = _as_dict(releases.get(release))
-    supported_archs = _as_list(release_data.get("architectures"))
-    is_available = arch in supported_archs and release in releases
+    is_available = _available(de_data, release, arch, devuan)
 
     for pkg in _as_list(release_data.get("packages_remove")):
         if pkg in packages:
@@ -317,8 +342,6 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
     #     desktops adapted for Devuan (sysvinit, no systemd) have a `devuan:`
     #     block; the others are not offered there.
     devuan_removes = set()
-    if devuan and "devuan" not in de_data:
-        is_available = False
     if devuan:
         for src in (common, de_data):
             devuan_data = _as_dict(src.get("devuan"))
@@ -383,6 +406,13 @@ def parse_desktop(yaml_dir, de_name, release, arch, tier):
         print(f'DESKTOP_REPO_URL="{shell_escape(repo.get("url", ""))}"')
         print(f'DESKTOP_REPO_KEY_URL="{shell_escape(repo.get("key_url", ""))}"')
         print(f'DESKTOP_REPO_KEYRING="{shell_escape(repo.get("keyring", ""))}"')
+        # Optional: the repository key's fingerprint. module_desktop_repo
+        # refuses a downloaded key that is not exactly this one.
+        fingerprint = re.sub(r"\s+", "", str(repo.get("key_fingerprint") or "")).upper()
+        if fingerprint and not re.fullmatch(r"[0-9A-F]{40}", fingerprint):
+            print(f"Error: repo.key_fingerprint of {de_name} is not a 40-digit fingerprint", file=sys.stderr)
+            sys.exit(1)
+        print(f'DESKTOP_REPO_KEY_FINGERPRINT="{fingerprint}"')
 
         # suite and components feed one or more `deb [...] <url> <suite>
         # <components>` lines. Resolution order: per-release override →
@@ -579,7 +609,7 @@ def list_desktops(yaml_dir, release, arch, fmt="tsv", avail_filter="available", 
     (no filtering, keep all) or an iterable of status values to KEEP
     (e.g. ("supported","community") drops status=unsupported).
     """
-    release, _ = _debian_base(release)
+    release, devuan = _debian_base(release)
     import json as jsonlib
 
     entries = []
@@ -599,7 +629,7 @@ def list_desktops(yaml_dir, release, arch, fmt="tsv", avail_filter="available", 
         releases = _as_dict(de_data.get("releases"))
         release_data = _as_dict(releases.get(release))
         archs = _as_list(release_data.get("architectures"))
-        available = arch in archs and release in releases
+        available = _available(de_data, release, arch, devuan)
 
         entries.append({
             "name": name,

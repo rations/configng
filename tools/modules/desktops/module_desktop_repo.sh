@@ -50,6 +50,22 @@ function module_desktop_repo() {
 					return 1
 				fi
 
+				# Pinned key (repo.key_fingerprint): the download must hold exactly
+				# that key and nothing else, or apt would trust whatever the key
+				# URL served.
+				if [[ -n "$DESKTOP_REPO_KEY_FINGERPRINT" ]]; then
+					local key_fprs
+					key_fprs=$(gpg --batch --with-colons --show-keys "$DESKTOP_REPO_KEYRING" 2>/dev/null \
+						| awk -F: '$1 == "pub" { p = 1; next } p && $1 == "fpr" { print $10; p = 0 }')
+					if [[ "$key_fprs" != "$DESKTOP_REPO_KEY_FINGERPRINT" ]]; then
+						echo "Error: the key from $DESKTOP_REPO_KEY_URL is not the expected one" >&2
+						echo "  expected: $DESKTOP_REPO_KEY_FINGERPRINT" >&2
+						echo "  got:      ${key_fprs:-no key}" >&2
+						rm -f "$DESKTOP_REPO_KEYRING"
+						return 1
+					fi
+				fi
+
 				# Emit one `deb ...` line per suite. Components are shared
 				# across all lines. Written via temp + mv so a mid-write
 				# failure never leaves apt with a partial source list.

@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<!--
+    Pivuan Audio: JWM menu, tray and look. Installed as /etc/jwm/pivuan.jwmrc by
+    pivuan-config and replaced when Pivuan Audio is installed again. Each user's
+    ~/.jwmrc includes this file; put your own settings there (see that file).
+-->
+<JWM>
+
+    <!-- Programs started with the session. JWM does not run XDG autostart
+         entries, so the tray applets, the polkit password dialog and the
+         Audio-Gui restore (PulseAudio-protocol bridges for ordinary apps)
+         are started here. -->
+    <StartupCommand>lxpolkit</StartupCommand>
+    <StartupCommand>nm-applet</StartupCommand>
+    <StartupCommand>blueman-applet</StartupCommand>
+    <StartupCommand>audio-gui --restore</StartupCommand>
+
+    <!-- The Pivuan menu: tray button, left or right click on the desktop, Alt+F1. -->
+    <RootMenu onroot="13">
+        <Program icon="lxterminal" label="Terminal">lxterminal</Program>
+        <Program icon="system-file-manager" label="Files">pcmanfm</Program>
+        <Program icon="brave-origin" label="Web Browser">brave-origin-stable</Program>
+        <Separator/>
+        <Menu icon="audio-card" label="Audio">
+            <Program icon="audio-gui" label="Audio Control">audio-gui</Program>
+            <Program icon="audio-card" label="Jack Graph">jack-graph</Program>
+            <Program icon="jackdaw" label="JackDAW">jackdaw</Program>
+            <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
+            <Program icon="audio-card" label="NAMix">namix-standalone</Program>
+            <Program icon="audio-card" label="DRUMix">drumix-standalone</Program>
+        </Menu>
+        <Menu icon="applications-accessories" label="Accessories">
+            <Program icon="org.xfce.mousepad" label="Text Editor">mousepad</Program>
+            <Program icon="io.github.celluloid_player.Celluloid" label="Media Player">celluloid</Program>
+        </Menu>
+        <Menu icon="preferences-system" label="System">
+            <Program icon="pivuan" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
+            <Program icon="cpu-power" label="CPU Power">cpu-power</Program>
+            <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
+            <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
+            <Program icon="video-display" label="Display">lxrandr</Program>
+            <Program icon="preferences-desktop-theme" label="Appearance">lxappearance</Program>
+        </Menu>
+        <Separator/>
+        <Restart icon="view-refresh" label="Restart JWM"/>
+        <Exit icon="system-log-out" label="Log Out" confirm="true"/>
+        <!-- JWM exits first, then runs the command; elogind and Pivuan's polkit
+             rule let a local administrator restart and shut down. -->
+        <Exit icon="system-reboot" label="Reboot" confirm="true">loginctl reboot</Exit>
+        <Exit icon="system-shutdown" label="Shut Down" confirm="true">loginctl poweroff</Exit>
+    </RootMenu>
+
+    <Group>
+        <Option>tiled</Option>
+    </Group>
+
+    <!-- Tray at the bottom: menu, desktops, windows, applets, clock. -->
+    <Tray x="0" y="-1" height="30" autohide="off">
+        <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>
+        <Spacer width="4"/>
+        <Pager labeled="true"/>
+        <TaskList maxwidth="240"/>
+        <Dock/>
+        <Clock format="%a %d %b  %H:%M"/>
+        <Spacer width="4"/>
+    </Tray>
+
+    <!-- Look: the greys and red of the Pivuan artwork. -->
+    <WindowStyle decorations="flat">
+        <Font>DejaVu Sans-10:bold</Font>
+        <Width>3</Width>
+        <Height>24</Height>
+        <Corner>0</Corner>
+        <Foreground>#C8C8C8</Foreground>
+        <Background>#414141</Background>
+        <Outline>#1E1E1E</Outline>
+        <Opacity>1.0</Opacity>
+        <Active>
+            <Foreground>#FFFFFF</Foreground>
+            <Background>#B0021C</Background>
+            <Outline>#1E1E1E</Outline>
+            <Opacity>1.0</Opacity>
+        </Active>
+    </WindowStyle>
+    <TrayStyle decorations="flat">
+        <Font>DejaVu Sans-10</Font>
+        <Background>#2B2B2B</Background>
+        <Foreground>#ECECEC</Foreground>
+        <Opacity>1.0</Opacity>
+    </TrayStyle>
+    <TaskListStyle list="all" group="false">
+        <Font>DejaVu Sans-10</Font>
+        <Foreground>#ECECEC</Foreground>
+        <Background>#2B2B2B</Background>
+        <Active>
+            <Foreground>#FFFFFF</Foreground>
+            <Background>#B0021C</Background>
+        </Active>
+    </TaskListStyle>
+    <PagerStyle>
+        <Foreground>#414141</Foreground>
+        <Background>#2B2B2B</Background>
+        <Text>#ECECEC</Text>
+        <Active>
+            <Foreground>#D0021F</Foreground>
+            <Background>#B0021C</Background>
+        </Active>
+    </PagerStyle>
+    <MenuStyle decorations="flat">
+        <Font>DejaVu Sans-10</Font>
+        <Foreground>#ECECEC</Foreground>
+        <Background>#333333</Background>
+        <Outline>#1E1E1E</Outline>
+        <Active>
+            <Foreground>#FFFFFF</Foreground>
+            <Background>#B0021C</Background>
+        </Active>
+        <Opacity>1.0</Opacity>
+    </MenuStyle>
+    <PopupStyle>
+        <Font>DejaVu Sans-10</Font>
+        <Foreground>#1E1E1E</Foreground>
+        <Background>#ECECEC</Background>
+    </PopupStyle>
+
+    <IconPath>/usr/share/icons/hicolor/48x48/apps</IconPath>
+    <IconPath>/usr/share/icons/hicolor/64x64/apps</IconPath>
+    <IconPath>/usr/share/icons/hicolor/128x128/apps</IconPath>
+    <IconPath>/usr/share/icons/hicolor/256x256/apps</IconPath>
+    <IconPath>/usr/share/icons/hicolor/scalable/apps</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/scalable/apps</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/scalable/devices</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/scalable/categories</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/scalable/actions</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/symbolic/apps</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/symbolic/devices</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/symbolic/categories</IconPath>
+    <IconPath>/usr/share/icons/Adwaita/symbolic/actions</IconPath>
+    <IconPath>/usr/share/pixmaps</IconPath>
+
+    <Desktops width="2" height="1">
+        <Background type="scale">/usr/share/backgrounds/pivuan/pivuan-background.png</Background>
+    </Desktops>
+
+    <DoubleClickSpeed>400</DoubleClickSpeed>
+    <DoubleClickDelta>2</DoubleClickDelta>
+    <FocusModel>click</FocusModel>
+    <SnapMode distance="10">border</SnapMode>
+    <MoveMode>opaque</MoveMode>
+    <ResizeMode>opaque</ResizeMode>
+
+    <!-- Keys -->
+    <Key key="Up">up</Key>
+    <Key key="Down">down</Key>
+    <Key key="Right">right</Key>
+    <Key key="Left">left</Key>
+    <Key key="Return">select</Key>
+    <Key key="Escape">escape</Key>
+
+    <Key mask="A" key="Tab">nextstacked</Key>
+    <Key mask="A" key="F4">close</Key>
+    <Key mask="A" key="#">desktop#</Key>
+    <Key mask="A" key="F1">root:1</Key>
+    <Key mask="A" key="F2">window</Key>
+    <Key mask="A" key="F10">maximize</Key>
+    <Key mask="A" key="Right">rdesktop</Key>
+    <Key mask="A" key="Left">ldesktop</Key>
+    <Key mask="CA" key="t">exec:lxterminal</Key>
+
+    <!-- Mouse -->
+    <Mouse context="root" button="4">ldesktop</Mouse>
+    <Mouse context="root" button="5">rdesktop</Mouse>
+
+    <Mouse context="title" button="1">move</Mouse>
+    <Mouse context="title" button="2">move</Mouse>
+    <Mouse context="title" button="3">window</Mouse>
+    <Mouse context="title" button="4">shade</Mouse>
+    <Mouse context="title" button="5">shade</Mouse>
+    <Mouse context="title" button="11">maximize</Mouse>
+
+    <Mouse context="icon" button="1">window</Mouse>
+    <Mouse context="icon" button="2">move</Mouse>
+    <Mouse context="icon" button="3">window</Mouse>
+    <Mouse context="icon" button="4">shade</Mouse>
+    <Mouse context="icon" button="5">shade</Mouse>
+
+    <Mouse context="border" button="1">resize</Mouse>
+    <Mouse context="border" button="2">move</Mouse>
+    <Mouse context="border" button="3">window</Mouse>
+
+    <Mouse context="close" button="-1">close</Mouse>
+    <Mouse context="close" button="2">move</Mouse>
+    <Mouse context="close" button="-3">close</Mouse>
+
+    <Mouse context="maximize" button="-1">maximize</Mouse>
+    <Mouse context="maximize" button="-2">maxv</Mouse>
+    <Mouse context="maximize" button="-3">maxh</Mouse>
+
+    <Mouse context="minimize" button="-1">minimize</Mouse>
+    <Mouse context="minimize" button="2">move</Mouse>
+    <Mouse context="minimize" button="-3">shade</Mouse>
+
+</JWM>

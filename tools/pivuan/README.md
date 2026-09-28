@@ -13,7 +13,7 @@ configuration tool), and gets its updates from Devuan and from its own apt repos
 - **sysvinit, no systemd**: `init` is PID 1, with elogind, eudev and ifupdown. Packages that
   would pull in systemd are left out.
 - **Desktop in one command**: XFCE or MATE with a LightDM login screen, installed from the
-  Devuan archive by `pivuan-config`.
+  Devuan archive by `pivuan-config`, or Pivuan Audio for music production (JWM and JACK).
 - **Kept up to date**: Devuan's security updates through apt, and the Raspberry Pi kernel,
   firmware, board support and `pivuan-config` through the Pivuan apt repository.
 
@@ -83,6 +83,33 @@ This installs, from the Devuan archive:
 - **Brave Origin** as the web browser, from [Brave's apt repository](https://brave.com/linux/).
 
 When it finishes, the login screen appears. Log in with the user you created in the wizard.
+
+### Pivuan Audio
+
+A desktop for audio production on the Raspberry Pi 5, with JACK and without PulseAudio or
+PipeWire:
+
+```sh
+sudo pivuan-config --cmd AUDI01    # Pivuan Audio
+```
+
+It installs:
+
+- **JWM** on the **XLibre** X server (from the
+  [xlibre-debian](https://xlibre-debian.github.io/devuan/) repository; its signing key is
+  checked against a pinned fingerprint),
+- the **xlogin** login screen on tty1 instead of a display manager (from the next boot;
+  tty2 to tty6 keep their text login),
+- **JACK** with realtime scheduling for the `audio` group, and the Pivuan audio applications
+  from the Pivuan apt repository: Audio-Gui (mixer and routing; it also carries the sound of
+  the browser and media player to JACK), Jack Graph, JackDAW, NAMp, NAMix, lvtuner, DRUMix
+  and CPU Power,
+- lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance,
+- **NetworkManager** and **blueman** in the tray, and **Brave Origin**.
+
+Reboot when it finishes. The menu is on the Pivuan button in the tray, and on a click on the
+desktop. Each user's `~/.jwmrc` includes `/etc/jwm/pivuan.jwmrc`; add your own settings to
+`~/.jwmrc`. `sudo pivuan-config --cmd AUDI02` removes it and brings back the text login.
 
 ## pivuan-config
 

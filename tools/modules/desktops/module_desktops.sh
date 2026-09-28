@@ -685,6 +685,28 @@ function _module_desktops_install_brave() {
 	return 0
 }
 
+# /etc/inittab as it was before a desktop's postinst changed it. The postinst
+# (postinst/audio.sh) saves it here before its first change.
+_module_desktops_inittab_backup() { echo "/etc/armbian/desktop/${1}.inittab"; }
+
+#
+# Put back /etc/inittab from before the desktop <de> was installed, if its
+# postinst changed it. Takes effect at the next boot (see the install path).
+# Usage: _module_desktops_restore_inittab <de>
+#
+function _module_desktops_restore_inittab() {
+	local backup
+	backup=$(_module_desktops_inittab_backup "$1")
+	[[ -f "$backup" ]] || return 0
+	if cp -p "$backup" /etc/inittab; then
+		rm -f "$backup"
+		echo "Restored /etc/inittab (text login on tty1 from the next boot)." >&2
+	else
+		echo "Warning: could not restore /etc/inittab from ${backup}" >&2
+		return 1
+	fi
+}
+
 #
 # Detect whether desktop $de is installed. Returns 0 if so, 1 otherwise.
 # Layered to avoid the dpkg-only check misfiring when DEs share
@@ -1000,6 +1022,12 @@ function module_desktops() {
 					else
 						echo "Warning: ${DESKTOP_DM} did not start; leaving default.target unchanged" >&2
 					fi
+				elif [[ "$DESKTOP_DM" == "none" ]]; then
+					# No display manager (Pivuan Audio: its postinst puts the xlogin
+					# login screen on tty1 in /etc/inittab). Reloading inittab now
+					# would end a login on tty1, which may be the one running this
+					# install, so the login screen comes with the next boot.
+					echo "${DESKTOP_DESC}: reboot to start the graphical login on tty1."
 				elif ! _desktop_in_container; then
 					# sysvinit (Devuan / Pivuan): the display manager's init script starts it
 					# in the default runlevel, so there is no target to switch. Make sure it is
@@ -1062,6 +1090,11 @@ function module_desktops() {
 				# sysvinit: stopping the display manager returns to the console gettys from /etc/inittab
 				srv_stop display-manager 2>/dev/null || true
 			fi
+
+			# A desktop whose postinst changed /etc/inittab (Pivuan Audio: xlogin
+			# on tty1) gets the original back before its packages go; afterwards
+			# init would keep respawning a program that no longer exists on tty1.
+			_module_desktops_restore_inittab "$de"
 
 			# Remove the exact set of packages that were newly installed by
 			# the install path. This list was captured at install time from

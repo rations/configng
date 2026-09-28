@@ -1,0 +1,86 @@
+name: audio
+description: "Pivuan Audio - JWM desktop for audio production (JACK, no PulseAudio or PipeWire)"
+# No display manager: postinst/audio.sh puts the xlogin login screen
+# (simple-login-gui) on tty1 in /etc/inittab, and it starts ~/.xinitrc (JWM).
+display_manager: none
+status: supported
+# Pivuan (Devuan, sysvinit) only, and none of common.yaml: its tiers bring
+# PipeWire's camera and Bluetooth plug-ins, cups, terminator and netplan,
+# none of which belong here. Everything is listed below.
+devuan_only: true
+inherit_common: false
+
+# X server: XLibre from xlibre-debian's Devuan repository. Its key is pinned:
+# pivuan-config refuses the download if it is any other key. Check it on a
+# machine with XLibre: gpg --show-keys /usr/share/keyrings/NexusSfan.pgp
+repo:
+  url: https://xlibre-debian.github.io/devuan/
+  key_url: https://mrchicken.nexussfan.cz/publickey.asc
+  key_fingerprint: 22075A919DAEB177E874C5D1D79CD6F1B52394FA
+  keyring: /usr/share/keyrings/NexusSfan.pgp
+  suite: main
+  components: [stable]
+
+tiers:
+  minimal:
+    packages:
+      # Window manager first: the primary package that marks this desktop installed.
+      - jwm
+      # X server: XLibre's core (with the modesetting driver the Pi uses, 99-vc4.conf)
+      # and libinput, not the xlibre/xserver-xlibre metapackages with every video
+      # driver. keyboard-configuration gives X the keyboard layout set in the wizard.
+      - xserver-xlibre-core
+      - xserver-xlibre-input-libinput
+      - xlibre-archive-keyring
+      - x11-xkb-utils
+      - keyboard-configuration
+      # Session
+      - xinit
+      - x11-xserver-utils
+      - dbus-x11
+      - libgl1-mesa-dri          # Mesa (V3D) for the modesetting driver's GPU acceleration
+      # Login screen on tty1 (Pivuan apt repository); pulls in seatd
+      - simple-login-gui
+      # Desktop programs
+      - lxterminal
+      - pcmanfm
+      - mousepad
+      - celluloid
+      - lxpolkit                 # polkit password dialog (started from ~/.jwmrc)
+      - lxrandr
+      - lxappearance
+      - xdg-utils
+      - adwaita-icon-theme
+      - fonts-dejavu-core
+      # Disks, removable media and trash in pcmanfm
+      - udisks2
+      - gvfs-backends
+      # Network and Bluetooth (module_desktops hands ifupdown's interfaces to NetworkManager)
+      - network-manager
+      - network-manager-gnome
+      - blueman
+      - bluez
+      # Audio: JACK and ALSA. Ordinary programs (browser, media player) reach JACK
+      # through Audio-Gui's PulseAudio-protocol bridges, so they need libpulse0 only.
+      - jackd2
+      - alsa-utils
+      - alsa-ucm-conf
+      - libpulse0
+      # Pivuan audio applications (Pivuan apt repository)
+      - audio-gui
+      - jack-graph
+      - jackdaw
+      - namp-rations
+      - namix
+      - lvtuner
+      - drumix
+      - cpu-power
+
+devuan:
+  # Browser: Brave Origin from Brave's apt repository (module_desktops).
+  brave_package: brave-origin
+
+releases:
+  trixie:
+    # The Pivuan audio applications are built for arm64 only.
+    architectures: [arm64]

@@ -219,6 +219,18 @@
                             "help": "Install MATE: mid + LibreOffice, GIMP, Inkscape, Thunderbird, Audacity. ~2.5 GB."
                         },
                         {
+                            "id": "AUDI01",
+                            "description": "Install Pivuan Audio",
+                            "short": "Pivuan Audio",
+                            "command": [
+                                "module_desktops install de=audio tier=minimal"
+                            ],
+                            "status": "Stable",
+                            "author": "@rations",
+                            "condition": "! module_desktops installed && module_desktop_supported audio",
+                            "help": "Install Pivuan Audio: JWM on XLibre with JACK and the Pivuan audio applications, no PulseAudio or PipeWire. Login screen on tty1 after a reboot."
+                        },
+                        {
                             "id": "I3WM01",
                             "description": "Install i3 (minimal)",
                             "short": "i3",
@@ -453,6 +465,17 @@
                             "author": "@igorpecovnik",
                             "condition": "module_desktops status de=mate",
                             "help": "Uninstall the MATE desktop environment"
+                        },
+                        {
+                            "id": "AUDI02",
+                            "description": "Uninstall Pivuan Audio",
+                            "command": [
+                                "module_desktops remove de=audio"
+                            ],
+                            "status": "Stable",
+                            "author": "@rations",
+                            "condition": "module_desktops status de=audio",
+                            "help": "Uninstall Pivuan Audio; tty1 gets its text login back at the next boot"
                         },
                         {
                             "id": "I3WM02",
