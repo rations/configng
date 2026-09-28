@@ -1,0 +1,11 @@
+// Pivuan (sysvinit, elogind): members of netdev (pivuan-config adds the desktop
+// user) may scan for Wi-Fi networks, connect to new ones and change connections
+// from nm-applet. NetworkManager allows most of that only for the active session
+// on the seat, and elogind does not always count the desktop as that session;
+// nm-applet then offers no networks to choose. Same rule as Debian's
+// network-manager package.
+polkit.addRule(function(action, subject) {
+	if (action.id.indexOf("org.freedesktop.NetworkManager.") == 0 && subject.isInGroup("netdev")) {
+		return polkit.Result.YES;
+	}
+});

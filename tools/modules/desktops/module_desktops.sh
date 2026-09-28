@@ -952,11 +952,16 @@ function module_desktops() {
 			# install branding
 			module_desktop_branding "$de"
 
-			# sysvinit (Devuan / Pivuan): let the desktop and the login screen
-			# shut down and restart the Pi (branding/polkit/50-pivuan-power.rules).
-			if _desktop_is_sysvinit && [[ -f "${desktops_dir}/branding/polkit/50-pivuan-power.rules" ]]; then
-				install -Dm 0644 "${desktops_dir}/branding/polkit/50-pivuan-power.rules" \
-					/etc/polkit-1/rules.d/50-pivuan-power.rules
+			# sysvinit (Devuan / Pivuan): polkit rules for the desktop. The login
+			# screen and the desktop may shut down and restart the Pi
+			# (50-pivuan-power.rules); the desktop user may pick Wi-Fi networks in
+			# nm-applet (50-pivuan-networkmanager.rules).
+			if _desktop_is_sysvinit; then
+				local rules
+				for rules in "${desktops_dir}"/branding/polkit/*.rules; do
+					[[ -f "$rules" ]] || continue
+					install -Dm 0644 "$rules" "/etc/polkit-1/rules.d/$(basename "$rules")"
+				done
 			fi
 
 			# Flip netplan renderer from systemd-networkd to
