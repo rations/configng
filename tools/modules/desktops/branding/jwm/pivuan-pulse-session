@@ -4,40 +4,114 @@
 # Installed as /usr/lib/pivuan/pulse-session and started by JWM (/etc/jwm/pivuan.jwmrc).
 #
 # PulseAudio plays the sound of everything that is not a JACK program (browser, media player)
-# to the card, HDMI or Bluetooth device picked in the tray icon (pasystray) or Volume Control.
-# When JACK starts (Jack Graph runs jackd), jackd asks PulseAudio for the sound card over D-Bus
-# and PulseAudio lets it go; this script then loads PulseAudio's JACK sink and source and makes
-# them the default, so those programs play into JACK. When JACK stops, the JACK modules unload
-# themselves; the previous default output and input are put back.
+# to the audio interface, HDMI or Bluetooth device picked in Volume Control (the speaker in the
+# tray). When JACK starts (Jack Graph runs jackd), jackd asks PulseAudio for the sound card over
+# D-Bus and PulseAudio lets it go; this script then loads PulseAudio's JACK sink and source and
+# makes them the default, so those programs play into JACK ("JACK (audio interface)" in Volume
+# Control). When JACK stops, the JACK modules unload themselves; the previous default output and
+# input are put back.
+#
+# USB audio interfaces: PulseAudio can leave one at the profile Off, or at an input-only profile
+# (when it has no stereo output PulseAudio recognises), and then it is not an output. While JACK
+# is not running, each such USB card is given an output profile once, when it appears (at login,
+# when plugged in, and after JACK has let it go): PulseAudio's best profile with an output
+# (stereo in and out before stereo out), else Pro Audio (all its channels). Profiles chosen in
+# Volume Control's Configuration tab afterwards stay.
 #
 # JACK_NO_START_SERVER: PulseAudio's JACK modules must never start a JACK server of their own.
 # PulseAudio is started from here so that it inherits this.
 JACK_NO_START_SERVER=1
 export JACK_NO_START_SERVER
+LC_ALL=C
+export LC_ALL
 
 command -v pulseaudio > /dev/null 2>&1 || exit 0
 start-pulseaudio-x11 > /dev/null 2>&1
-command -v pasystray > /dev/null 2>&1 && pasystray > /dev/null 2>&1 &
+
+# The USB sound cards without an output: one line each, "<name> <best output profile>".
+usb_cards_without_output() {
+	pactl list cards 2> /dev/null | awk '
+		function flush() {
+			best = best_other != "" ? best_other : pro
+			if (name != "" && usb && !sinks[active] && best != "") print name, best
+			name = ""; active = ""; usb = 0; best_other = ""; best_prio = -1; pro = ""; in_profiles = 0
+			split("", sinks)
+		}
+		/^Card #/ { flush(); next }
+		/^\tName: / { name = $2; next }
+		/^\t\tdevice\.bus = "usb"/ { usb = 1; next }
+		/^\tProfiles:/ { in_profiles = 1; next }
+		/^\tActive Profile: / { active = $3; in_profiles = 0; next }
+		/^\t[^\t]/ { in_profiles = 0; next }
+		in_profiles && /^\t\t/ {
+			profile = $1; sub(/:$/, "", profile)
+			sinks[profile] = ($0 ~ /sinks: [1-9]/)
+			if (!sinks[profile] || $0 ~ /available: no\)/) next
+			if (profile == "pro-audio") { pro = profile; next }
+			if (match($0, /priority: [0-9]+/)) {
+				prio = substr($0, RSTART + 10, RLENGTH - 10) + 0
+				if (prio > best_prio) { best_prio = prio; best_other = profile }
+			}
+		}
+		END { flush() }'
+}
+
+# Give each USB card without an output an output profile, once per card: $handled holds the
+# names of the cards seen. Cards that are gone (unplugged) are checked again when they return.
+handled=" "
+check_usb_cards() {
+	present=" "
+	for name in $(pactl list cards short 2> /dev/null | awk '$2 ~ /^alsa_card\.usb-/ { print $2 }'); do
+		present="${present}${name} "
+	done
+	kept=" "
+	for name in ${handled}; do
+		case "${present}" in *" ${name} "*) kept="${kept}${name} " ;; esac
+	done
+	handled="${kept}"
+	new=" "
+	for name in ${present}; do
+		case "${handled}" in *" ${name} "*) ;; *) new="${new}${name} " ;; esac
+	done
+	[ "${new}" != " " ] || return 0
+	usb_cards_without_output | while read -r name best; do
+		case "${new}" in *" ${name} "*) pactl set-card-profile "${name}" "${best}" > /dev/null 2>&1 ;; esac
+	done
+	handled="${handled}${new# }"
+}
 
 uid="$(id -u)"
 saved_sink=""
 saved_source=""
+jack_running=no
+check_usb_cards
 while :; do
 	sleep 2
 	if pgrep -u "${uid}" -x jackd > /dev/null 2>&1; then
+		jack_running=yes
 		pactl list short modules 2> /dev/null | grep -q 'module-jack-sink' && continue
 		# JACK has just started (or is not ready yet: tried again in 2 seconds).
 		sink="$(pactl get-default-sink 2> /dev/null)"
 		source="$(pactl get-default-source 2> /dev/null)"
-		if pactl load-module module-jack-sink channels=2 connect=yes > /dev/null 2>&1; then
+		if pactl load-module module-jack-sink channels=2 connect=yes \
+			'sink_properties=device.description="JACK (audio interface)"' > /dev/null 2>&1; then
 			[ "${sink}" = jack_out ] || saved_sink="${sink}"
 			[ "${source}" = jack_in ] || saved_source="${source}"
-			pactl load-module module-jack-source channels=2 connect=yes > /dev/null 2>&1
+			pactl load-module module-jack-source channels=2 connect=yes \
+				'source_properties=device.description="JACK (audio interface)"' > /dev/null 2>&1
 			pactl set-default-sink jack_out > /dev/null 2>&1
 			pactl set-default-source jack_in > /dev/null 2>&1
 		fi
-	elif [ -n "${saved_sink}${saved_source}" ]; then
-		# JACK has stopped: PulseAudio takes the card back; restore the defaults once it has.
+		continue
+	fi
+	if [ "${jack_running}" = yes ]; then
+		# JACK has stopped: its card is PulseAudio's again, and is checked once more.
+		jack_running=no
+		handled=" "
+	fi
+	check_usb_cards
+	if [ -n "${saved_sink}${saved_source}" ]; then
+		# PulseAudio takes the card back; restore the defaults once it has.
 		if [ -n "${saved_sink}" ] && pactl set-default-sink "${saved_sink}" > /dev/null 2>&1; then
 			saved_sink=""
 		fi

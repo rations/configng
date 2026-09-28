@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Pivuan Audio: start the user's autostart entries. Installed as /usr/lib/pivuan/autostart and
+# run by JWM at login (/etc/jwm/pivuan.jwmrc); JWM does not read autostart entries itself.
+#
+# Runs the programs of the .desktop files in ~/.config/autostart, such as the screen layout
+# lxrandr saves there (lxrandr-autostart.desktop, marked for LXDE: Pivuan Audio uses LXDE's
+# programs). Skipped: entries marked Hidden, entries for other desktops only (OnlyShowIn without
+# LXDE or JWM, such as XFCE's), entries not for LXDE or JWM (NotShowIn). The programs Pivuan
+# Audio starts itself are in /etc/jwm/pivuan.jwmrc, not here.
+#
+dir="${XDG_CONFIG_HOME:-${HOME}/.config}/autostart"
+[ -d "${dir}" ] || exit 0
+
+# The value of a key in the [Desktop Entry] group.
+entry_value() {
+	sed -n '/^\[Desktop Entry\]/,/^\[/{s/^'"$2"'[[:space:]]*=[[:space:]]*//p}' "$1" | head -n 1
+}
+
+# True if the ;-separated list $1 names LXDE or JWM.
+for_us() {
+	case ";$1;" in
+		*";LXDE;"* | *";JWM;"*) return 0 ;;
+	esac
+	return 1
+}
+
+for file in "${dir}"/*.desktop; do
+	[ -f "${file}" ] || continue
+	[ "$(entry_value "${file}" Type)" = Application ] || continue
+	case "$(entry_value "${file}" Hidden)" in true | True | 1) continue ;; esac
+	only="$(entry_value "${file}" OnlyShowIn)"
+	[ -z "${only}" ] || for_us "${only}" || continue
+	not="$(entry_value "${file}" NotShowIn)"
+	[ -n "${not}" ] && for_us "${not}" && continue
+	exec_line="$(entry_value "${file}" Exec)"
+	[ -n "${exec_line}" ] || continue
+	# TryExec: skip if that program is not installed.
+	try="$(entry_value "${file}" TryExec)"
+	[ -z "${try}" ] || command -v "${try}" > /dev/null 2>&1 || continue
+	# Drop the field codes (%f, %u, ...), which have no meaning at login; %% is a %.
+	exec_line="$(printf '%s\n' "${exec_line}" | sed -e 's/%[fFuUdDnNickvm]//g' -e 's/%%/%/g')"
+	sh -c "${exec_line}" > /dev/null 2>&1 &
+done
+exit 0

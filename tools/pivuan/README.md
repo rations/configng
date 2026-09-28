@@ -103,10 +103,14 @@ It installs:
   from the Pivuan apt repository: Jack Graph, JackDAW, NAMp, NAMix, lvtuner, DRUMix and
   CPU Power,
 - **PulseAudio** for everything else: HDMI, Bluetooth speakers and headphones, the browser and
-  media player, with a volume icon in the tray (pasystray) and Volume Control (pavucontrol).
-  While JACK runs, PulseAudio lets it have the sound card and plays into JACK instead; when
-  JACK stops, it takes the card back,
-- lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance, with the Numix icons,
+  media player. The speaker in the tray opens Volume Control (pavucontrol); its scroll wheel
+  changes the volume. A USB audio interface is an output as soon as it is plugged in (if
+  PulseAudio leaves it at the profile Off, it is given its best output profile). While JACK
+  runs, PulseAudio lets it have the sound card and plays into JACK instead ("JACK (audio
+  interface)" in Volume Control); when JACK stops, it takes the card back,
+- lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance, with the Numix icons.
+  Screen settings saved in lxrandr are applied at each login, as are other programs in
+  `~/.config/autostart` meant for LXDE or any desktop,
 - the folders Downloads, Documents, Music, Videos, NAM, Impulse Responses, `.vst3` and `.lv2`
   in each home, bookmarked in pcmanfm,
 - **NetworkManager** and **blueman** in the tray, and **Brave Origin**.

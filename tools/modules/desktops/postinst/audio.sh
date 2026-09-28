@@ -32,6 +32,11 @@ EOF
 #    (started by JWM) runs PulseAudio and hands it over to JACK while JACK runs.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-audio-session" /usr/lib/pivuan/audio-session
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-pulse-session" /usr/lib/pivuan/pulse-session
+#    /usr/lib/pivuan/autostart (started by JWM) runs the user's ~/.config/autostart
+#    entries, such as the screen layout lxrandr saves. picom, the compositor, gets
+#    Pivuan's settings (no shadows or fading) rather than /etc/xdg/picom.conf.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-autostart" /usr/lib/pivuan/autostart
+install -Dm 0644 "${desktops_dir}/branding/jwm/pivuan-picom.conf" /etc/pivuan/picom.conf
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
 [ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session
@@ -101,8 +106,11 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive jackd2 > /dev/
 #    login screen starts on this machine: a tty1 respawning something that
 #    cannot run leaves no login there (tty2-tty6 keep theirs). The original
 #    inittab is kept in /etc/armbian/desktop/audio.inittab; removing Pivuan
-#    Audio puts it back. Not reloaded now (telinit q would end a login on
-#    tty1, maybe the one running this); it takes effect at the next boot.
+#    Audio puts it back. The line has its own id (x1): init replaces a
+#    running process only when its id goes away, so with the getty's id "1"
+#    the text login on tty1 would stay until it exits. module_desktops
+#    reloads init once this install has finished (telinit q). An empty
+#    /etc/inittab.d keeps init from reporting that it has none.
 #    If xlogin-launcher fails at boot, it runs a text login on tty1 itself.
 launcher=/usr/bin/xlogin-launcher
 if [ ! -x "${launcher}" ] || ! /usr/bin/xlogin --version > /dev/null 2>&1; then
@@ -113,10 +121,16 @@ if ! command -v Xlibre > /dev/null 2>&1 && ! command -v Xorg > /dev/null 2>&1; t
 	echo "Warning: no X server installed; tty1 keeps its text login." >&2
 	exit 0
 fi
-if [ -f /etc/inittab ] && ! grep -q '^[^#]*xlogin-launcher' /etc/inittab; then
-	mkdir -p /etc/armbian/desktop
-	[ -f /etc/armbian/desktop/audio.inittab ] || cp -p /etc/inittab /etc/armbian/desktop/audio.inittab
-	sed -i -E '/^1:[0-9]*:respawn:.*[ag]etty/s/^/#/' /etc/inittab
-	echo "1:2345:respawn:${launcher}" >> /etc/inittab
+if [ -f /etc/inittab ]; then
+	install -d -m 0755 /etc/inittab.d
+	if ! grep -q '^[^#]*xlogin-launcher' /etc/inittab; then
+		mkdir -p /etc/armbian/desktop
+		[ -f /etc/armbian/desktop/audio.inittab ] || cp -p /etc/inittab /etc/armbian/desktop/audio.inittab
+		sed -i -E '/^1:[0-9]*:respawn:.*[ag]etty/s/^/#/' /etc/inittab
+		echo "x1:2345:respawn:${launcher}" >> /etc/inittab
+	else
+		# Installed by an earlier Pivuan Audio with the getty's id.
+		sed -i -E 's|^1:([0-9]*:respawn:.*xlogin-launcher)|x1:\1|' /etc/inittab
+	fi
 fi
 exit 0

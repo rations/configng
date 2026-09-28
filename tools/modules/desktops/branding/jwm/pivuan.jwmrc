@@ -7,11 +7,14 @@
 <JWM>
 
     <!-- Programs started with the session. JWM does not run XDG autostart
-         entries, so they are started here: the compositor (picom: smooth window
+         entries itself, so they are started here: the user's own autostart
+         entries (~/.config/autostart, such as the screen layout saved by
+         lxrandr), the compositor (picom, /etc/pivuan/picom.conf: smooth window
          moves, no redraw trails or tearing; GPU backend, else the CPU one), the
-         polkit password dialog, PulseAudio with its tray volume icon (it also
-         plays into JACK while JACK runs), and the network and Bluetooth applets. -->
-    <StartupCommand>picom -b --backend glx --vsync || picom -b --backend xrender --vsync</StartupCommand>
+         polkit password dialog, PulseAudio (it also plays into JACK while JACK
+         runs), and the network and Bluetooth applets. -->
+    <StartupCommand>/usr/lib/pivuan/autostart</StartupCommand>
+    <StartupCommand>picom -b --config /etc/pivuan/picom.conf || picom -b --config /etc/pivuan/picom.conf --backend xrender</StartupCommand>
     <StartupCommand>lxpolkit</StartupCommand>
     <StartupCommand>/usr/lib/pivuan/pulse-session</StartupCommand>
     <StartupCommand>nm-applet</StartupCommand>
@@ -56,13 +59,20 @@
         <Option>tiled</Option>
     </Group>
 
-    <!-- Tray at the bottom: menu, desktops, windows, applets, clock. -->
+    <!-- Tray at the bottom: menu, desktops, windows, applets, volume, clock.
+         Volume: a click opens Volume Control, the scroll wheel changes the volume
+         of the current output. -->
     <Tray x="0" y="-1" height="30" autohide="off">
         <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>
         <Spacer width="4"/>
         <Pager labeled="true"/>
         <TaskList maxwidth="240"/>
         <Dock/>
+        <TrayButton icon="audio-volume-high" popup="Volume Control (scroll to change the volume)">
+            <Button mask="123">exec:pavucontrol</Button>
+            <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
+            <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
+        </TrayButton>
         <Clock format="%a %d %b  %H:%M"/>
         <Spacer width="4"/>
     </Tray>
