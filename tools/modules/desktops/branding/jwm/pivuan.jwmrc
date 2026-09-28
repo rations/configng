@@ -20,11 +20,11 @@
     <!-- The Pivuan menu: tray button, left or right click on the desktop, Alt+F1. -->
     <RootMenu onroot="13">
         <Program icon="lxterminal" label="Terminal">lxterminal</Program>
-        <Program icon="system-file-manager" label="Files">pcmanfm</Program>
+        <Program icon="user-home" label="Files">pcmanfm</Program>
         <Program icon="brave-origin" label="Web Browser">brave-origin-stable</Program>
         <Separator/>
         <Menu icon="audio-card" label="Audio">
-            <Program icon="multimedia-volume-control" label="Volume Control">pavucontrol</Program>
+            <Program icon="audio-speakers" label="Volume Control">pavucontrol</Program>
             <Program icon="audio-card" label="Jack Graph">jack-graph</Program>
             <Program icon="jackdaw" label="JackDAW">jackdaw</Program>
             <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
@@ -36,7 +36,7 @@
             <Program icon="io.github.celluloid_player.Celluloid" label="Media Player">celluloid</Program>
         </Menu>
         <Menu icon="preferences-system" label="System">
-            <Program icon="pivuan" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
+            <Program icon="/usr/share/pixmaps/pivuan/pivuan.png" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
             <Program icon="cpu-power" label="CPU Power">cpu-power</Program>
             <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
             <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
@@ -127,13 +127,15 @@
     </PopupStyle>
 
     <!-- Icons: JWM looks only in these folders, in this order. The Numix theme
-         first (as on MATE and XFCE), then the programs' own icons. -->
+         first (as on MATE and XFCE; its action icons stop at 32 pixels), then
+         the programs' own icons. -->
     <IconPath>/usr/share/icons/Numix/48/apps</IconPath>
     <IconPath>/usr/share/icons/Numix/48/categories</IconPath>
     <IconPath>/usr/share/icons/Numix/48/devices</IconPath>
     <IconPath>/usr/share/icons/Numix/48/places</IconPath>
-    <IconPath>/usr/share/icons/Numix/48/actions</IconPath>
     <IconPath>/usr/share/icons/Numix/48/status</IconPath>
+    <IconPath>/usr/share/icons/Numix/32/actions</IconPath>
+    <IconPath>/usr/share/icons/Numix/32/categories</IconPath>
     <IconPath>/usr/share/icons/hicolor/48x48/apps</IconPath>
     <IconPath>/usr/share/icons/hicolor/64x64/apps</IconPath>
     <IconPath>/usr/share/icons/hicolor/128x128/apps</IconPath>
