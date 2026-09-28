@@ -1,0 +1,49 @@
+# What merging Armbian's configng (upstream) into Pivuan's branch would bring: new commits, merge
+# conflicts, upstream changes to files Pivuan changed, new menu entries, and anything that brings
+# systemd into pivuan-config (systemctl calls that bypass the srv_* helpers, systemd units). Changes
+# nothing: it only reports. The check script is shared with rations/build
+# (.github/pivuan/upstream-check.sh, branch pivuan).
+#
+# Weekly, and by hand. The run fails (and GitHub emails) when something needs attention before
+# merging; the report is on the run's page and in the "upstream-report" artifact.
+
+name: Pivuan upstream check
+
+on:
+  schedule:
+    - cron: "52 2 * * 1" # Mondays 02:52 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out Pivuan
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Check script from rations/build
+        uses: actions/checkout@v4
+        with:
+          repository: rations/build
+          ref: pivuan
+          path: .pivuan-build
+          sparse-checkout: .github/pivuan
+
+      - name: Compare with upstream
+        run: |
+          REPORT="${RUNNER_TEMP}/upstream-report.md" SUMMARY="${GITHUB_STEP_SUMMARY}" \
+            bash .pivuan-build/.github/pivuan/upstream-check.sh configng
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstream-report
+          path: ${{ runner.temp }}/upstream-report.md
+          if-no-files-found: ignore
+          retention-days: 90
