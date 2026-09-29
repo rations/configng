@@ -17,7 +17,7 @@ install -Dv /dev/null $profile
 
 echo "[org/mate/desktop/background]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 
@@ -37,7 +37,7 @@ toolkit-accessibility=false
 
 [org/mate/desktop/screensaver]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 
@@ -138,7 +138,7 @@ mkdir -p /usr/share/glib-2.0/schemas
 rm -f /usr/share/glib-2.0/schemas/90-armbian-mate.gschema.override
 cat > /usr/share/glib-2.0/schemas/90-pivuan-mate.gschema.override <<- 'GSEOF'
 [org.mate.background]
-picture-filename='/usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-filename='/usr/share/backgrounds/pivuan/background-dark-gray.png'
 picture-options='zoom'
 primary-color='#456789'
 
@@ -164,16 +164,22 @@ if [ -d /usr/share/glib-2.0/schemas ]; then glib-compile-schemas /usr/share/glib
 # icons are looked up in /usr/share/pixmaps.
 if [ -f /usr/share/pixmaps/pivuan/pivuan.png ]; then ln -sfn pivuan/pivuan.png /usr/share/pixmaps/pivuan.png; fi
 
-# List the Pivuan background in Appearance > Background.
+# List the Pivuan backgrounds in Appearance > Background ("Pivuan Dark Gray", ...).
 mkdir -p /usr/share/mate-background-properties
-cat > /usr/share/mate-background-properties/pivuan.xml <<- 'XMLEOF'
-<?xml version="1.0"?>
-<!DOCTYPE wallpapers SYSTEM "mate-wp-list.dtd">
-<wallpapers>
-  <wallpaper deleted="false">
-    <name>Pivuan</name>
-    <filename>/usr/share/backgrounds/pivuan/pivuan-background.png</filename>
-    <options>zoom</options>
-  </wallpaper>
-</wallpapers>
-XMLEOF
+{
+	echo '<?xml version="1.0"?>'
+	echo '<!DOCTYPE wallpapers SYSTEM "mate-wp-list.dtd">'
+	echo '<wallpapers>'
+	for image in /usr/share/backgrounds/pivuan/background-*.png; do
+		[ -f "$image" ] || continue
+		colour=${image##*/background-}
+		colour=${colour%.png}
+		name=$(echo "$colour" | tr '-' ' ' | awk '{ for (i = 1; i <= NF; i++) $i = toupper(substr($i, 1, 1)) substr($i, 2); print }')
+		echo '  <wallpaper deleted="false">'
+		echo "    <name>Pivuan $name</name>"
+		echo "    <filename>$image</filename>"
+		echo '    <options>zoom</options>'
+		echo '  </wallpaper>'
+	done
+	echo '</wallpapers>'
+} > /usr/share/mate-background-properties/pivuan.xml

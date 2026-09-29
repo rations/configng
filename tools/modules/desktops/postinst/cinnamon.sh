@@ -62,7 +62,7 @@ secondary-click-time=1.2
 
 [org/cinnamon/desktop/background]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 
@@ -85,7 +85,7 @@ autorun-never=false
 
 [org/cinnamon/desktop/screensaver]
 picture-options='zoom'
-picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
 primary-color='#456789'
 secondary-color='#FFFFFF'
 

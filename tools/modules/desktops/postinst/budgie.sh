@@ -46,7 +46,7 @@ sidebar-bookmark-breakpoint=5
 [org/gnome/desktop/background]
 color-shading-type='solid'
 picture-options='stretched'
-picture-uri='file:////usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:////usr/share/backgrounds/pivuan/background-dark-gray.png'
 primary-color='#008094'
 
 [org/gnome/settings-daemon/plugins/power]
@@ -63,7 +63,7 @@ monospace-font-name='Noto Mono 11'
 toolkit-accessibility=false
 
 [org/gnome/desktop/screensaver]
-picture-uri='file:///usr/share/backgrounds/pivuan/pivuan-background.png'
+picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
 
 [org/cinnamon/desktop/applications/terminal]
 exec='/usr/bin/terminator'

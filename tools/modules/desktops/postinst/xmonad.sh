@@ -26,7 +26,7 @@ cat > /etc/skel/.xprofile <<- 'XPROFILEEOF'
 	#!/bin/sh
 	case "${DESKTOP_SESSION:-}" in
 	*xmonad*)
-		[ -x /usr/bin/feh ] && feh --bg-scale /usr/share/backgrounds/pivuan/pivuan-background.png &
+		[ -x /usr/bin/feh ] && feh --bg-scale /usr/share/backgrounds/pivuan/background-dark-gray.png &
 		[ -x /usr/bin/xmobar ] && xmobar &
 		[ -x /usr/bin/nm-applet ] && nm-applet &
 		[ -x /usr/bin/dunst ] && dunst &

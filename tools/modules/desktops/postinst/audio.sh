@@ -60,12 +60,19 @@ fi
 
 # 3. The login screen. /etc/xlogin.conf is read by xlogin-launcher at boot;
 #    xlogin itself rewrites single keys in it (the background picked in its
-#    Options menu), so an existing file is left alone.
+#    Options menu), so an existing file is left alone (except for the old
+#    background name, below).
 backgrounds=/usr/share/xlogin/backgrounds
 install -d -m 0755 "${backgrounds}"
-if [ -f /usr/share/backgrounds/pivuan/pivuan-background.png ]; then
-	# xlogin only reads root-owned files that nobody else can write.
-	install -m 0644 -o root -g root /usr/share/backgrounds/pivuan/pivuan-background.png "${backgrounds}/pivuan-background.png"
+# The Pivuan backgrounds, picked in xlogin's Options menu; dark gray is the default.
+# xlogin only reads root-owned files that nobody else can write.
+for image in /usr/share/backgrounds/pivuan/background-*.png; do
+	[ -f "${image}" ] || continue
+	install -m 0644 -o root -g root "${image}" "${backgrounds}/${image##*/}"
+done
+# The background before there were several (pivuan-background.png) is now dark gray.
+if [ -f /etc/xlogin.conf ]; then
+	sed -i "s/^XLOGIN_BACKGROUND='pivuan-background\.png'$/XLOGIN_BACKGROUND='background-dark-gray.png'/" /etc/xlogin.conf
 fi
 if [ ! -f /etc/xlogin.conf ]; then
 	cat > /etc/xlogin.conf << 'EOF'
@@ -83,7 +90,7 @@ XSERVER_FLAGS="-seat seat0 -keeptty -nolisten tcp -ac"
 XLOGIN_CONSOLE_VT='2'
 
 # Background image: a file in /usr/share/xlogin/backgrounds, or empty for none.
-XLOGIN_BACKGROUND='pivuan-background.png'
+XLOGIN_BACKGROUND='background-dark-gray.png'
 
 # fill | fit | center | stretch | tile
 XLOGIN_BG_MODE='fill'

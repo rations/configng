@@ -48,14 +48,18 @@ function module_desktop_branding() {
 				cp -R "$desktop_dir/skel/." /etc/skel/
 			fi
 
-			# wallpapers (Pivuan: one background for the desktop and the
-			# LightDM greeter, /usr/share/backgrounds/pivuan/pivuan-background.png)
+			# wallpapers (Pivuan: the Pivuan backgrounds, background-<colour>.png in
+			# /usr/share/backgrounds/pivuan; background-dark-gray.png is the default
+			# for the desktops and the LightDM greeter)
 			if [[ -d "$desktop_dir/branding/wallpapers" ]]; then
 				mkdir -p /usr/share/backgrounds/pivuan
 				cp "$desktop_dir/branding/wallpapers/"* /usr/share/backgrounds/pivuan/ 2>/dev/null || true
 				# Listed in XFCE's wallpaper picker, which opens in this folder.
 				if [[ -d /usr/share/backgrounds/xfce ]]; then
-					ln -sfn ../pivuan/pivuan-background.png /usr/share/backgrounds/xfce/pivuan-background.png
+					for image in /usr/share/backgrounds/pivuan/background-*.png; do
+						[[ -f "$image" ]] || continue
+						ln -sfn "../pivuan/${image##*/}" "/usr/share/backgrounds/xfce/${image##*/}"
+					done
 				fi
 			fi
 

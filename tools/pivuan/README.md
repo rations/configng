@@ -189,8 +189,8 @@ The contents of this repository are licensed under the
 [GNU General Public License, version 2](LICENSE), the license of the Armbian build framework
 Pivuan is built with, **except the Pivuan artwork**.
 
-**Pivuan artwork.** The Pivuan logo and background (`pivuan-logo.png`,
-`pivuan-background.png`, and the copies of them in Pivuan images and in
+**Pivuan artwork.** The Pivuan logo and backgrounds (`pivuan-logo.png`,
+`backgrounds/background-*.png`, and the copies of them in Pivuan images and in
 [rations/configng](https://github.com/rations/configng)) are © 2026 rations, all rights
 reserved. They are not covered by the GPL or any other license in these repositories, and may
 only be used with permission. Please ask by

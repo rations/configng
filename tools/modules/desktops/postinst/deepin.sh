@@ -9,4 +9,4 @@ if [ -f /etc/pulse/default.pa ]; then sed "s/load-module module-udev-detect$/& t
 
 #remove linked file
 rm /etc/alternatives/deepin-default-background
-ln -s /usr/share/backgrounds/pivuan/pivuan-background.png /etc/alternatives/deepin-default-background
+ln -s /usr/share/backgrounds/pivuan/background-dark-gray.png /etc/alternatives/deepin-default-background

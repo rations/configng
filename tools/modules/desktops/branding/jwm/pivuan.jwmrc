@@ -162,7 +162,7 @@
     <IconPath>/usr/share/pixmaps</IconPath>
 
     <Desktops width="2" height="1">
-        <Background type="scale">/usr/share/backgrounds/pivuan/pivuan-background.png</Background>
+        <Background type="scale">/usr/share/backgrounds/pivuan/background-dark-gray.png</Background>
     </Desktops>
 
     <DoubleClickSpeed>400</DoubleClickSpeed>
