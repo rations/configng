@@ -114,7 +114,10 @@ It installs:
   `~/.config/autostart` meant for LXDE or any desktop,
 - the folders Downloads, Documents, Music, Videos, NAM, Impulse Responses, `.vst3` and `.lv2`
   in each home, bookmarked in pcmanfm,
-- **NetworkManager** and **blueman** in the tray, and **Brave Origin**.
+- **NetworkManager** and **blueman** in the tray, and **Brave Origin**,
+- **Desktop Settings** (System in the menu): the desktop background (the Pivuan backgrounds
+  or any picture), program icons on the panel, and hiding the panel until the mouse reaches
+  the bottom edge. It saves to `~/.config/pivuan/desktop.conf`.
 
 The menu is on the Pivuan button in the tray, and on a click on the desktop. Each user's
 `~/.jwmrc` includes `/etc/jwm/pivuan.jwmrc`; add your own settings to

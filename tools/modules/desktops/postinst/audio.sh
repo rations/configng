@@ -37,6 +37,11 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-pulse-session" /usr/lib/pi
 #    Pivuan's settings (no shadows or fading) rather than /etc/xdg/picom.conf.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-autostart" /usr/lib/pivuan/autostart
 install -Dm 0644 "${desktops_dir}/branding/jwm/pivuan-picom.conf" /etc/pivuan/picom.conf
+#    The panel and the desktop background come from /usr/lib/pivuan/jwm-desktop (included by
+#    pivuan.jwmrc), which reads the user's Desktop Settings (pivuan-desktop-settings,
+#    System > Desktop Settings in the menu).
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivuan/jwm-desktop
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-settings" /usr/bin/pivuan-desktop-settings
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
 [ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session

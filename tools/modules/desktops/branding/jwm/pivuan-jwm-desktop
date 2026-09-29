@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+# Pivuan Audio: JWM's panel (tray) and desktop background, from the user's Desktop Settings.
+# Installed as /usr/lib/pivuan/jwm-desktop; /etc/jwm/pivuan.jwmrc includes what it prints
+# (<Include>exec:/usr/lib/pivuan/jwm-desktop</Include>), so JWM runs it at each start and
+# restart.
+#
+# The settings are in ~/.config/pivuan/desktop.conf, written by Desktop Settings
+# (pivuan-desktop-settings); one per line:
+#   background=<picture>        the desktop background (default: Pivuan dark gray)
+#   autohide=yes|no             hide the panel at the bottom edge until the mouse reaches it
+#   launcher=<name>.desktop     a program icon on the panel, in this order (from the
+#                               programs' .desktop files)
+# Without the file, or with lines it does not understand, the defaults are used: the panel
+# always comes up.
+#
+config="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/desktop.conf"
+default_background=/usr/share/backgrounds/pivuan/background-dark-gray.png
+
+background=""
+autohide=no
+launchers=""
+if [ -r "${config}" ]; then
+	while IFS= read -r line || [ -n "${line}" ]; do
+		case "${line}" in
+			background=*) background="${line#background=}" ;;
+			autohide=yes) autohide=yes ;;
+			launcher=*.desktop)
+				id="${line#launcher=}"
+				case "${id}" in */*) ;; *) launchers="${launchers} ${id}" ;; esac
+				;;
+		esac
+	done < "${config}"
+fi
+[ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+
+# Text for XML: & < > " escaped.
+xml() {
+	printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+}
+
+# A program's .desktop file, by its name, where menus look for it (the user's own first).
+desktop_file() {
+	for dir in "${XDG_DATA_HOME:-${HOME}/.local/share}/applications" /usr/local/share/applications \
+		/usr/share/applications; do
+		[ -f "${dir}/$1" ] && echo "${dir}/$1" && return 0
+	done
+	return 1
+}
+
+# A panel button for a .desktop file: its icon, its name as the tooltip, and its command
+# (without the %f, %u ... placeholders). Programs that run in a terminal get one.
+launcher_button() {
+	awk '
+		/^\[/ { in_entry = ($0 == "[Desktop Entry]"); next }
+		!in_entry { next }
+		/^Name=/ && name == "" { name = substr($0, 6) }
+		/^Icon=/ && icon == "" { icon = substr($0, 6) }
+		/^Exec=/ && exec_line == "" { exec_line = substr($0, 6) }
+		/^Terminal=true/ { terminal = 1 }
+		/^Hidden=true/ { hidden = 1 }
+		END {
+			if (exec_line == "" || hidden) exit 1
+			gsub(/%[fFuUdDnNickvm]/, "", exec_line)
+			gsub(/%%/, "%", exec_line)
+			sub(/[ \t]+$/, "", exec_line)
+			if (terminal) exec_line = "lxterminal -e " exec_line
+			printf "%s\n%s\n%s\n", name, icon, exec_line
+		}' "$1"
+}
+
+echo '<?xml version="1.0"?>'
+echo '<JWM>'
+if [ "${autohide}" = yes ]; then hide=bottom; else hide=off; fi
+echo "    <Tray x=\"0\" y=\"-1\" height=\"30\" autohide=\"${hide}\">"
+echo '        <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>'
+echo '        <Spacer width="4"/>'
+buttons=0
+for id in ${launchers}; do
+	file="$(desktop_file "${id}")" || continue
+	entry="$(launcher_button "${file}")" || continue
+	name="$(printf '%s\n' "${entry}" | sed -n 1p)"
+	icon="$(printf '%s\n' "${entry}" | sed -n 2p)"
+	command="$(printf '%s\n' "${entry}" | sed -n 3p)"
+	[ -n "${icon}" ] || icon=application-x-executable
+	echo "        <TrayButton icon=\"$(xml "${icon}")\" popup=\"$(xml "${name}")\">exec:$(xml "${command}")</TrayButton>"
+	buttons=$((buttons + 1))
+done
+[ "${buttons}" -eq 0 ] || echo '        <Spacer width="4"/>'
+cat << 'EOF'
+        <Pager labeled="true"/>
+        <TaskList maxwidth="240"/>
+        <Dock/>
+        <TrayButton icon="audio-speakers" popup="Volume Control (scroll to change the volume)">
+            <Button mask="123">exec:pavucontrol</Button>
+            <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
+            <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
+        </TrayButton>
+        <Clock format="%a %d %b  %H:%M"/>
+        <Spacer width="4"/>
+    </Tray>
+EOF
+echo '    <Desktops width="2" height="1">'
+echo "        <Background type=\"scale\">$(xml "${background}")</Background>"
+echo '    </Desktops>'
+echo '</JWM>'

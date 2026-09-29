@@ -44,6 +44,7 @@
             <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
             <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
             <Program icon="video-display" label="Display">lxrandr</Program>
+            <Program icon="preferences-desktop-personal" label="Desktop Settings">pivuan-desktop-settings</Program>
             <Program icon="preferences-desktop-theme" label="Appearance">lxappearance</Program>
         </Menu>
         <Separator/>
@@ -59,23 +60,12 @@
         <Option>tiled</Option>
     </Group>
 
-    <!-- Tray at the bottom: menu, desktops, windows, applets, volume, clock.
-         Volume: a click opens Volume Control, the scroll wheel changes the volume
-         of the current output. -->
-    <Tray x="0" y="-1" height="30" autohide="off">
-        <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>
-        <Spacer width="4"/>
-        <Pager labeled="true"/>
-        <TaskList maxwidth="240"/>
-        <Dock/>
-        <TrayButton icon="audio-speakers" popup="Volume Control (scroll to change the volume)">
-            <Button mask="123">exec:pavucontrol</Button>
-            <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
-            <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
-        </TrayButton>
-        <Clock format="%a %d %b  %H:%M"/>
-        <Spacer width="4"/>
-    </Tray>
+    <!-- Tray at the bottom (menu, program icons, desktops, windows, applets,
+         volume, clock) and the desktop background: printed by
+         /usr/lib/pivuan/jwm-desktop from the user's Desktop Settings
+         (~/.config/pivuan/desktop.conf). Volume: a click opens Volume Control,
+         the scroll wheel changes the volume of the current output. -->
+    <Include>exec:/usr/lib/pivuan/jwm-desktop</Include>
 
     <!-- Look: the greys of the Pivuan artwork, and the gold of NAMp-rations. Text on
          gold is dark: white on this gold is hard to read. -->
@@ -144,6 +134,7 @@
     <IconPath>/usr/share/icons/Numix/48/devices</IconPath>
     <IconPath>/usr/share/icons/Numix/48/places</IconPath>
     <IconPath>/usr/share/icons/Numix/48/status</IconPath>
+    <IconPath>/usr/share/icons/Numix/48/mimetypes</IconPath>
     <IconPath>/usr/share/icons/Numix/32/actions</IconPath>
     <IconPath>/usr/share/icons/Numix/32/categories</IconPath>
     <IconPath>/usr/share/icons/hicolor/48x48/apps</IconPath>
@@ -160,10 +151,6 @@
     <IconPath>/usr/share/icons/Adwaita/symbolic/categories</IconPath>
     <IconPath>/usr/share/icons/Adwaita/symbolic/actions</IconPath>
     <IconPath>/usr/share/pixmaps</IconPath>
-
-    <Desktops width="2" height="1">
-        <Background type="scale">/usr/share/backgrounds/pivuan/background-dark-gray.png</Background>
-    </Desktops>
 
     <DoubleClickSpeed>400</DoubleClickSpeed>
     <DoubleClickDelta>2</DoubleClickDelta>

@@ -42,6 +42,8 @@ tiers:
       - lxpolkit                 # polkit password dialog (started from ~/.jwmrc)
       - lxrandr
       - lxappearance
+      - python3-gi              # Desktop Settings (pivuan-desktop-settings): background,
+      - gir1.2-gtk-3.0          # panel icons, hiding the panel
       - xdg-utils
       - adwaita-icon-theme
       - numix-icon-theme         # the icons of the MATE and XFCE desktops, in the menu and pcmanfm
