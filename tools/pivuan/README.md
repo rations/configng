@@ -105,7 +105,8 @@ It installs:
 - **PulseAudio** for everything else: HDMI, Bluetooth speakers and headphones, the browser and
   media player. The speaker in the tray opens Volume Control (pavucontrol); its scroll wheel
   changes the volume. A USB audio interface is an output as soon as it is plugged in (if
-  PulseAudio leaves it at the profile Off, it is given its best output profile). While JACK
+  PulseAudio leaves it at the profile Off, it is given its best output profile; if it could
+  not open the interface, it is switched off and on again). While JACK
   runs, PulseAudio lets it have the sound card and plays into JACK instead ("JACK (audio
   interface)" in Volume Control); when JACK stops, it takes the card back,
 - lxterminal, pcmanfm, mousepad, Celluloid, lxrandr and lxappearance, with the Numix icons.

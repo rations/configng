@@ -12,11 +12,14 @@
 # input are put back.
 #
 # USB audio interfaces: PulseAudio can leave one at the profile Off, or at an input-only profile
-# (when it has no stereo output PulseAudio recognises), and then it is not an output. While JACK
-# is not running, each such USB card is given an output profile once, when it appears (at login,
-# when plugged in, and after JACK has let it go): PulseAudio's best profile with an output
-# (stereo in and out before stereo out), else Pro Audio (all its channels). Profiles chosen in
-# Volume Control's Configuration tab afterwards stay.
+# (when it has no stereo output PulseAudio recognises), and then it is not an output. It can also
+# pick an output profile but fail to open the card (a USB interface can be busy or not ready yet
+# right after boot), and then the profile shows but there is no output. While JACK is not
+# running, each USB card is checked when it appears (at login, when plugged in, and after JACK
+# has let it go): without an output profile it is given PulseAudio's best one (stereo in and out
+# before stereo out), else Pro Audio (all its channels); with an output profile but no output,
+# the profile is switched off and on again, which opens the card again. Up to 5 tries, 2 seconds
+# apart. Profiles chosen in Volume Control's Configuration tab afterwards stay.
 #
 # JACK_NO_START_SERVER: PulseAudio's JACK modules must never start a JACK server of their own.
 # PulseAudio is started from here so that it inherits this.
@@ -28,14 +31,27 @@ export LC_ALL
 command -v pulseaudio > /dev/null 2>&1 || exit 0
 start-pulseaudio-x11 > /dev/null 2>&1
 
-# The USB sound cards without an output: one line each, "<name> <best output profile>".
-usb_cards_without_output() {
-	pactl list cards 2> /dev/null | awk '
+# The USB sound cards: one line each, "<name> <state> <profile>". State "ok": it has an output.
+# "off": its profile has no output; <profile> is its best output profile. "closed": its profile
+# (<profile>) has an output but PulseAudio has no output for the card: the card
+# alsa_card.<X> has the outputs alsa_output.<X>.<...>.
+usb_cards() {
+	sinks="$(pactl list sinks short 2> /dev/null | awk '{ print $2 }')"
+	pactl list cards 2> /dev/null | awk -v sinks="${sinks}" '
+		BEGIN { n = split(sinks, s, "\n"); for (i = 1; i <= n; i++) sink[s[i]] = 1 }
+		function has_sink(card,   prefix, k) {
+			prefix = card; sub(/^alsa_card\./, "alsa_output.", prefix); prefix = prefix "."
+			for (k in sink) if (index(k, prefix) == 1) return 1
+			return 0
+		}
 		function flush() {
 			best = best_other != "" ? best_other : pro
-			if (name != "" && usb && !sinks[active] && best != "") print name, best
+			if (name != "" && usb) {
+				if (!sinks_of[active]) { if (best != "") print name, "off", best }
+				else print name, (has_sink(name) ? "ok" : "closed"), active
+			}
 			name = ""; active = ""; usb = 0; best_other = ""; best_prio = -1; pro = ""; in_profiles = 0
-			split("", sinks)
+			split("", sinks_of)
 		}
 		/^Card #/ { flush(); next }
 		/^\tName: / { name = $2; next }
@@ -45,8 +61,8 @@ usb_cards_without_output() {
 		/^\t[^\t]/ { in_profiles = 0; next }
 		in_profiles && /^\t\t/ {
 			profile = $1; sub(/:$/, "", profile)
-			sinks[profile] = ($0 ~ /sinks: [1-9]/)
-			if (!sinks[profile] || $0 ~ /available: no\)/) next
+			sinks_of[profile] = ($0 ~ /sinks: [1-9]/)
+			if (!sinks_of[profile] || $0 ~ /available: no\)/) next
 			if (profile == "pro-audio") { pro = profile; next }
 			if (match($0, /priority: [0-9]+/)) {
 				prio = substr($0, RSTART + 10, RLENGTH - 10) + 0
@@ -56,28 +72,43 @@ usb_cards_without_output() {
 		END { flush() }'
 }
 
-# Give each USB card without an output an output profile, once per card: $handled holds the
-# names of the cards seen. Cards that are gone (unplugged) are checked again when they return.
+# Give each USB card an output, up to 5 tries per card. $handled holds the names of the cards
+# that are done (have an output, or used their tries); $tries holds "<name>=<tries>" for the
+# others. Cards that are gone (unplugged) are forgotten, and checked again when they return.
 handled=" "
+tries=" "
 check_usb_cards() {
-	present=" "
-	for name in $(pactl list cards short 2> /dev/null | awk '$2 ~ /^alsa_card\.usb-/ { print $2 }'); do
-		present="${present}${name} "
-	done
-	kept=" "
-	for name in ${handled}; do
-		case "${present}" in *" ${name} "*) kept="${kept}${name} " ;; esac
-	done
-	handled="${kept}"
-	new=" "
-	for name in ${present}; do
-		case "${handled}" in *" ${name} "*) ;; *) new="${new}${name} " ;; esac
-	done
-	[ "${new}" != " " ] || return 0
-	usb_cards_without_output | while read -r name best; do
-		case "${new}" in *" ${name} "*) pactl set-card-profile "${name}" "${best}" > /dev/null 2>&1 ;; esac
-	done
-	handled="${handled}${new# }"
+	cards="$(usb_cards)"
+	now_handled=" "
+	now_tries=" "
+	while read -r name state profile; do
+		[ -n "${name}" ] || continue
+		case "${handled}" in *" ${name} "*)
+			now_handled="${now_handled}${name} "
+			continue
+			;;
+		esac
+		n=0
+		for entry in ${tries}; do
+			[ "${entry%=*}" = "${name}" ] && n="${entry##*=}"
+		done
+		if [ "${state}" = ok ] || [ "${n}" -ge 5 ]; then
+			now_handled="${now_handled}${name} "
+			continue
+		fi
+		case "${state}" in
+			off) pactl set-card-profile "${name}" "${profile}" > /dev/null 2>&1 ;;
+			closed)
+				pactl set-card-profile "${name}" off > /dev/null 2>&1
+				pactl set-card-profile "${name}" "${profile}" > /dev/null 2>&1
+				;;
+		esac
+		now_tries="${now_tries}${name}=$((n + 1)) "
+	done << EOF
+${cards}
+EOF
+	handled="${now_handled}"
+	tries="${now_tries}"
 }
 
 uid="$(id -u)"
@@ -93,12 +124,14 @@ while :; do
 		# JACK has just started (or is not ready yet: tried again in 2 seconds).
 		sink="$(pactl get-default-sink 2> /dev/null)"
 		source="$(pactl get-default-source 2> /dev/null)"
+		# PulseAudio reads a module argument up to the first space unless its value is in single
+		# quotes, so the name (with spaces) is in double quotes inside single quotes.
 		if pactl load-module module-jack-sink channels=2 connect=yes \
-			'sink_properties=device.description="JACK (audio interface)"' > /dev/null 2>&1; then
+			"sink_properties='device.description=\"JACK (audio interface)\"'" > /dev/null 2>&1; then
 			[ "${sink}" = jack_out ] || saved_sink="${sink}"
 			[ "${source}" = jack_in ] || saved_source="${source}"
 			pactl load-module module-jack-source channels=2 connect=yes \
-				'source_properties=device.description="JACK (audio interface)"' > /dev/null 2>&1
+				"source_properties='device.description=\"JACK (audio interface)\"'" > /dev/null 2>&1
 			pactl set-default-sink jack_out > /dev/null 2>&1
 			pactl set-default-source jack_in > /dev/null 2>&1
 		fi
@@ -108,6 +141,7 @@ while :; do
 		# JACK has stopped: its card is PulseAudio's again, and is checked once more.
 		jack_running=no
 		handled=" "
+		tries=" "
 	fi
 	check_usb_cards
 	if [ -n "${saved_sink}${saved_source}" ]; then
