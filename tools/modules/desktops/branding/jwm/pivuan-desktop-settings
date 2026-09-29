@@ -1,14 +1,16 @@
 #!/usr/bin/python3
 #
 # Pivuan Audio: Desktop Settings for JWM. The desktop background, program icons on the panel,
-# and hiding the panel. Installed as /usr/bin/pivuan-desktop-settings (System > Desktop
-# Settings in the Pivuan menu).
+# the panel's size and colour, the icons' size, and hiding the panel. Installed as
+# /usr/bin/pivuan-desktop-settings (System > Desktop Settings in the Pivuan menu).
 #
-# Writes ~/.config/pivuan/desktop.conf and restarts JWM (open windows stay); JWM gets the
-# panel and background from /usr/lib/pivuan/jwm-desktop, which reads that file.
+# Writes ~/.config/pivuan/desktop.conf and the panel's icons (~/.config/pivuan/panel-icons),
+# and restarts JWM (open windows stay); JWM gets the panel and background from
+# /usr/lib/pivuan/jwm-desktop, which reads them.
 #
-#   pivuan-desktop-settings           the window
-#   pivuan-desktop-settings --check   load the settings and GTK without a window (tests)
+#   pivuan-desktop-settings                 the window
+#   pivuan-desktop-settings --check         load the settings and GTK without a window (tests)
+#   pivuan-desktop-settings --render-icons  make the panel's icons from the saved settings
 #
 import os
 import subprocess
@@ -17,20 +19,43 @@ import sys
 import gi
 
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Pango", "1.0")
-from gi.repository import GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
 
 BACKGROUNDS = "/usr/share/backgrounds/pivuan"
 DEFAULT_BACKGROUND = os.path.join(BACKGROUNDS, "background-dark-gray.png")
 CONFIG = os.path.join(GLib.get_user_config_dir(), "pivuan", "desktop.conf")
+PANEL_ICONS = os.path.join(GLib.get_user_config_dir(), "pivuan", "panel-icons")
 THUMB_WIDTH, THUMB_HEIGHT = 128, 72
 ICON_SIZE = 32
+# The panel (as /usr/lib/pivuan/jwm-desktop reads them). JWM draws a panel icon 8 pixels
+# smaller than the panel, so the icons can be at most panel size - 8.
+PANEL_SIZE_DEFAULT, PANEL_SIZE_MIN, PANEL_SIZE_MAX = 30, 20, 96
+ICON_SIZE_DEFAULT, ICON_SIZE_MIN = 22, 12
+ICON_MARGIN = 8
+PANEL_COLOUR_DEFAULT = "#2B2B2B"
+SPEAKER_ICON = "audio-speakers"  # the Volume Control button, always on the panel
+
+
+def is_colour(value):
+    return (len(value) == 7 and value[0] == "#"
+            and all(c in "0123456789abcdefABCDEF" for c in value[1:]))
+
+
+def fix_sizes(settings):
+    """Keep the sizes in range: the panel 20-96, the icons 12 to panel size - 8."""
+    settings["panel_size"] = min(max(settings["panel_size"], PANEL_SIZE_MIN), PANEL_SIZE_MAX)
+    settings["icon_size"] = min(max(settings["icon_size"], ICON_SIZE_MIN),
+                                settings["panel_size"] - ICON_MARGIN)
 
 
 def load_settings():
     """The settings in desktop.conf, or the defaults."""
-    settings = {"background": DEFAULT_BACKGROUND, "autohide": False, "launchers": []}
+    settings = {"background": DEFAULT_BACKGROUND, "autohide": False, "launchers": [],
+                "panel_size": PANEL_SIZE_DEFAULT, "icon_size": ICON_SIZE_DEFAULT,
+                "panel_colour": PANEL_COLOUR_DEFAULT}
     try:
         with open(CONFIG, encoding="utf-8") as f:
             for line in f:
@@ -41,8 +66,13 @@ def load_settings():
                     settings["autohide"] = value == "yes"
                 elif key == "launcher" and value.endswith(".desktop") and "/" not in value:
                     settings["launchers"].append(value)
+                elif key in ("panel_size", "icon_size") and value.isdigit():
+                    settings[key] = int(value)
+                elif key == "panel_colour" and is_colour(value):
+                    settings["panel_colour"] = value.upper()
     except OSError:
         pass
+    fix_sizes(settings)
     return settings
 
 
@@ -53,12 +83,87 @@ def save_settings(settings):
         "# Pivuan desktop settings, written by Desktop Settings (pivuan-desktop-settings).",
         "background=" + settings["background"],
         "autohide=" + ("yes" if settings["autohide"] else "no"),
+        "panel_size=%d" % settings["panel_size"],
+        "icon_size=%d" % settings["icon_size"],
+        "panel_colour=" + settings["panel_colour"],
     ]
     lines += ["launcher=" + app_id for app_id in settings["launchers"]]
     tmp = CONFIG + ".new"
     with open(tmp, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     os.replace(tmp, CONFIG)
+
+
+def icon_theme():
+    """The user's icon theme: GTK's own in the desktop, else the one GTK 3 is set to use
+    (~/.config/gtk-3.0/settings.ini), for --render-icons without a display."""
+    if Gdk.Screen.get_default() is not None:
+        return Gtk.IconTheme.get_default()
+    theme = Gtk.IconTheme.new()
+    ini = GLib.KeyFile()
+    try:
+        ini.load_from_file(os.path.join(GLib.get_user_config_dir(), "gtk-3.0", "settings.ini"),
+                           GLib.KeyFileFlags.NONE)
+        theme.set_custom_theme(ini.get_string("Settings", "gtk-icon-theme-name"))
+    except GLib.Error:
+        pass
+    return theme
+
+
+def icon_pixbuf(theme, gicon, size):
+    """The icon at size x size pixels at most, or the generic program icon."""
+    flags = Gtk.IconLookupFlags.FORCE_SIZE
+    candidates = [gicon] if gicon is not None else []
+    candidates += [Gio.ThemedIcon.new("application-x-executable"),
+                   Gio.ThemedIcon.new("image-missing")]
+    for candidate in candidates:
+        try:
+            info = theme.lookup_by_gicon(candidate, size, flags)
+            pixbuf = info.load_icon() if info else None
+        except GLib.Error:
+            pixbuf = None
+        if pixbuf is None:
+            continue
+        width, height = pixbuf.get_width(), pixbuf.get_height()
+        if width > size or height > size:
+            scale = size / max(width, height)
+            pixbuf = pixbuf.scale_simple(max(1, round(width * scale)),
+                                         max(1, round(height * scale)),
+                                         GdkPixbuf.InterpType.BILINEAR)
+        return pixbuf
+    return None
+
+
+def render_icons(settings):
+    """Make the panel's icons: each a square PNG as big as JWM draws a panel icon (panel size
+    - 8), with the icon at icon_size in the middle, so all are the same size. Returns the files
+    made."""
+    os.makedirs(PANEL_ICONS, exist_ok=True)
+    theme = icon_theme()
+    area = settings["panel_size"] - ICON_MARGIN
+    wanted = {SPEAKER_ICON: Gio.ThemedIcon.new(SPEAKER_ICON)}
+    for app_id in settings["launchers"]:
+        info = app_info(app_id)
+        wanted[app_id[:-len(".desktop")]] = info.get_icon() if info else None
+    made = []
+    for name, gicon in wanted.items():
+        canvas = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, area, area)
+        canvas.fill(0)
+        pixbuf = icon_pixbuf(theme, gicon, settings["icon_size"])
+        if pixbuf is not None:
+            width, height = pixbuf.get_width(), pixbuf.get_height()
+            pixbuf.copy_area(0, 0, width, height, canvas, (area - width) // 2,
+                             (area - height) // 2)
+        path = os.path.join(PANEL_ICONS, name + ".png")
+        canvas.savev(path + ".new", "png", [], [])
+        os.replace(path + ".new", path)
+        made.append(path)
+    # Icons of programs no longer on the panel.
+    for old in os.listdir(PANEL_ICONS):
+        path = os.path.join(PANEL_ICONS, old)
+        if old.endswith(".png") and path not in made:
+            os.remove(path)
+    return made
 
 
 def app_info(app_id):
@@ -163,6 +268,26 @@ class DesktopSettings(Gtk.Window):
                                               "(move the mouse to the bottom edge to show it)")
         self.autohide.set_active(self.settings["autohide"])
         outer.pack_start(self.autohide, False, False, 0)
+        # Sizes (type a number, or - and +) and the colour.
+        look = Gtk.Box(spacing=8)
+        self.panel_size = Gtk.SpinButton.new_with_range(PANEL_SIZE_MIN, PANEL_SIZE_MAX, 1)
+        self.panel_size.set_value(self.settings["panel_size"])
+        self.icon_size = Gtk.SpinButton.new_with_range(ICON_SIZE_MIN,
+                                                       PANEL_SIZE_MAX - ICON_MARGIN, 1)
+        self.icon_size.set_value(self.settings["icon_size"])
+        self.panel_size.connect("value-changed", self.panel_size_changed)
+        self.panel_size_changed(self.panel_size)
+        self.colour = Gtk.ColorButton(title="Panel colour")
+        self.colour.set_rgba(self.rgba(self.settings["panel_colour"]))
+        default_colour = Gtk.Button(label="Default")
+        default_colour.set_tooltip_text("The Pivuan grey")
+        default_colour.connect("clicked", lambda *_: self.colour.set_rgba(
+            self.rgba(PANEL_COLOUR_DEFAULT)))
+        for widget in (Gtk.Label(label="Panel size"), self.panel_size,
+                       Gtk.Label(label="Icon size"), self.icon_size,
+                       Gtk.Label(label="Panel colour"), self.colour, default_colour):
+            look.pack_start(widget, False, False, 0)
+        outer.pack_start(look, False, False, 0)
         outer.pack_start(Gtk.Label(label="Program icons on the panel, from left to right:",
                                    xalign=0), False, False, 0)
         lists = Gtk.Box(spacing=6)
@@ -193,6 +318,23 @@ class DesktopSettings(Gtk.Window):
         actions.pack_start(apply, False, False, 0)
         outer.pack_start(actions, False, False, 0)
         self.connect("destroy", Gtk.main_quit)
+
+    @staticmethod
+    def rgba(colour):
+        rgba = Gdk.RGBA()
+        rgba.parse(colour)
+        return rgba
+
+    @staticmethod
+    def hex_colour(rgba):
+        return "#%02X%02X%02X" % tuple(round(c * 255) for c in (rgba.red, rgba.green, rgba.blue))
+
+    def panel_size_changed(self, spin):
+        """The icons fit in the panel: at most panel size - 8."""
+        top = spin.get_value_as_int() - ICON_MARGIN
+        self.icon_size.set_range(ICON_SIZE_MIN, top)
+        if self.icon_size.get_value_as_int() > top:
+            self.icon_size.set_value(top)
 
     @staticmethod
     def heading(text):
@@ -302,9 +444,17 @@ class DesktopSettings(Gtk.Window):
 
     def apply(self, _button):
         self.settings["autohide"] = self.autohide.get_active()
+        # Typed values count even without Enter.
+        self.panel_size.update()
+        self.icon_size.update()
+        self.settings["panel_size"] = self.panel_size.get_value_as_int()
+        self.settings["icon_size"] = self.icon_size.get_value_as_int()
+        self.settings["panel_colour"] = self.hex_colour(self.colour.get_rgba())
+        fix_sizes(self.settings)
         try:
             save_settings(self.settings)
-        except OSError as e:
+            render_icons(self.settings)
+        except (OSError, GLib.Error) as e:
             dialog = Gtk.MessageDialog(transient_for=self, modal=True,
                                        message_type=Gtk.MessageType.ERROR,
                                        buttons=Gtk.ButtonsType.CLOSE,
@@ -325,9 +475,17 @@ def main():
         print("background:", settings["background"])
         print("autohide:", "yes" if settings["autohide"] else "no")
         print("launchers:", " ".join(settings["launchers"]) or "none")
+        print("panel size:", settings["panel_size"])
+        print("icon size:", settings["icon_size"])
+        print("panel colour:", settings["panel_colour"])
+        return 0
+    if sys.argv[1:] == ["--render-icons"]:
+        for path in render_icons(load_settings()):
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
+            print("%s %dx%d" % (path, pixbuf.get_width(), pixbuf.get_height()))
         return 0
     if len(sys.argv) > 1:
-        print("usage: pivuan-desktop-settings [--check]", file=sys.stderr)
+        print("usage: pivuan-desktop-settings [--check | --render-icons]", file=sys.stderr)
         return 2
     window = DesktopSettings()
     window.show_all()

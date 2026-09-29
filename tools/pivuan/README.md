@@ -116,7 +116,8 @@ It installs:
   in each home, bookmarked in pcmanfm,
 - **NetworkManager** and **blueman** in the tray, and **Brave Origin**,
 - **Desktop Settings** (System in the menu): the desktop background (the Pivuan backgrounds
-  or any picture), program icons on the panel, and hiding the panel until the mouse reaches
+  or any picture), program icons on the panel (all drawn at the same size), the panel's
+  size, the icons' size and the panel's colour, and hiding the panel until the mouse reaches
   the bottom edge. It saves to `~/.config/pivuan/desktop.conf`.
 
 The menu is on the Pivuan button in the tray, and on a click on the desktop. Each user's

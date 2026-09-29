@@ -11,8 +11,18 @@
 #   autohide=yes|no             hide the panel at the bottom edge until the mouse reaches it
 #   launcher=<name>.desktop     a program icon on the panel, in this order (from the
 #                               programs' .desktop files)
+#   panel_size=<pixels>         the panel's height, 20 to 96 (default 30)
+#   icon_size=<pixels>          the program icons' size, 12 up to the panel's height - 8
+#                               (default 22)
+#   panel_colour=#RRGGBB        the panel's colour (default #2B2B2B); its text is light on a
+#                               dark panel and dark on a light one
 # Without the file, or with lines it does not understand, the defaults are used: the panel
 # always comes up.
+#
+# The icons: JWM draws a panel icon 8 pixels smaller than the panel, whatever its own size.
+# Desktop Settings makes each program's icon (and the speaker's) a square PNG of exactly that
+# size, with the icon at icon_size in the middle, in ~/.config/pivuan/panel-icons/<name>.png,
+# so all are the same size. Without that file, the icon is looked up by its name.
 #
 config="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/desktop.conf"
 default_background=/usr/share/backgrounds/pivuan/background-dark-gray.png
@@ -20,11 +30,24 @@ default_background=/usr/share/backgrounds/pivuan/background-dark-gray.png
 background=""
 autohide=no
 launchers=""
+panel_size=30
+panel_colour="#2B2B2B"
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
 		case "${line}" in
 			background=*) background="${line#background=}" ;;
 			autohide=yes) autohide=yes ;;
+			panel_size=*)
+				value="${line#panel_size=}"
+				case "${value}" in
+					"" | *[!0-9]*) ;;
+					*) [ "${value}" -ge 20 ] && [ "${value}" -le 96 ] && panel_size="${value}" ;;
+				esac
+				;;
+			panel_colour=\#??????)
+				value="${line#panel_colour=}"
+				case "${value}" in \#*[!0-9A-Fa-f]*) ;; *) panel_colour="${value}" ;; esac
+				;;
 			launcher=*.desktop)
 				id="${line#launcher=}"
 				case "${id}" in */*) ;; *) launchers="${launchers} ${id}" ;; esac
@@ -33,6 +56,23 @@ if [ -r "${config}" ]; then
 	done < "${config}"
 fi
 [ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+icons="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/panel-icons"
+
+# The panel's text: dark on a light panel, light on a dark one (perceived brightness of
+# #RRGGBB); the pager's other desktops a little towards the text colour.
+hex_byte() { printf '%d' "0x$(printf '%s' "$1" | cut -c "$2-$(($2 + 1))")"; }
+red="$(hex_byte "${panel_colour}" 2)"
+green="$(hex_byte "${panel_colour}" 4)"
+blue="$(hex_byte "${panel_colour}" 6)"
+if [ $(((299 * red + 587 * green + 114 * blue) / 1000)) -gt 140 ]; then
+	text="#1E1E1E"
+	shade=0
+else
+	text="#ECECEC"
+	shade=255
+fi
+pager="$(printf '#%02X%02X%02X' $(((red * 85 + shade * 15) / 100)) $(((green * 85 + shade * 15) / 100)) \
+	$(((blue * 85 + shade * 15) / 100)))"
 
 # Text for XML: & < > " escaped.
 xml() {
@@ -72,7 +112,7 @@ launcher_button() {
 echo '<?xml version="1.0"?>'
 echo '<JWM>'
 if [ "${autohide}" = yes ]; then hide=bottom; else hide=off; fi
-echo "    <Tray x=\"0\" y=\"-1\" height=\"30\" autohide=\"${hide}\">"
+echo "    <Tray x=\"0\" y=\"-1\" height=\"${panel_size}\" autohide=\"${hide}\">"
 echo '        <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>'
 echo '        <Spacer width="4"/>'
 buttons=0
@@ -83,15 +123,19 @@ for id in ${launchers}; do
 	icon="$(printf '%s\n' "${entry}" | sed -n 2p)"
 	command="$(printf '%s\n' "${entry}" | sed -n 3p)"
 	[ -n "${icon}" ] || icon=application-x-executable
+	[ -f "${icons}/${id%.desktop}.png" ] && icon="${icons}/${id%.desktop}.png"
 	echo "        <TrayButton icon=\"$(xml "${icon}")\" popup=\"$(xml "${name}")\">exec:$(xml "${command}")</TrayButton>"
 	buttons=$((buttons + 1))
 done
 [ "${buttons}" -eq 0 ] || echo '        <Spacer width="4"/>'
+speaker=audio-speakers
+[ -f "${icons}/audio-speakers.png" ] && speaker="${icons}/audio-speakers.png"
+echo '        <Pager labeled="true"/>'
+echo '        <TaskList maxwidth="240"/>'
+echo '        <Dock/>'
+echo "        <TrayButton icon=\"$(xml "${speaker}")\" popup=\"Volume Control (scroll to change the volume)\">"
 cat << 'EOF'
-        <Pager labeled="true"/>
-        <TaskList maxwidth="240"/>
-        <Dock/>
-        <TrayButton icon="audio-speakers" popup="Volume Control (scroll to change the volume)">
+
             <Button mask="123">exec:pavucontrol</Button>
             <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
             <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
@@ -103,4 +147,31 @@ EOF
 echo '    <Desktops width="2" height="1">'
 echo "        <Background type=\"scale\">$(xml "${background}")</Background>"
 echo '    </Desktops>'
+# The panel's colours (the gold of the active window and desktop is Pivuan's).
+cat << EOF
+    <TrayStyle decorations="flat">
+        <Font>DejaVu Sans-10</Font>
+        <Background>${panel_colour}</Background>
+        <Foreground>${text}</Foreground>
+        <Opacity>1.0</Opacity>
+    </TrayStyle>
+    <TaskListStyle list="all" group="false">
+        <Font>DejaVu Sans-10</Font>
+        <Foreground>${text}</Foreground>
+        <Background>${panel_colour}</Background>
+        <Active>
+            <Foreground>#1E1E1E</Foreground>
+            <Background>#B88B4C</Background>
+        </Active>
+    </TaskListStyle>
+    <PagerStyle>
+        <Foreground>${pager}</Foreground>
+        <Background>${panel_colour}</Background>
+        <Text>${text}</Text>
+        <Active>
+            <Foreground>#D4A865</Foreground>
+            <Background>#B88B4C</Background>
+        </Active>
+    </PagerStyle>
+EOF
 echo '</JWM>'

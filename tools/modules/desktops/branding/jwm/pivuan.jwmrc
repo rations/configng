@@ -68,7 +68,8 @@
     <Include>exec:/usr/lib/pivuan/jwm-desktop</Include>
 
     <!-- Look: the greys of the Pivuan artwork, and the gold of NAMp-rations. Text on
-         gold is dark: white on this gold is hard to read. -->
+         gold is dark: white on this gold is hard to read. The panel's colours are
+         with the panel, in /usr/lib/pivuan/jwm-desktop (Desktop Settings). -->
     <WindowStyle decorations="flat">
         <Font>DejaVu Sans-10:bold</Font>
         <Width>3</Width>
@@ -85,30 +86,6 @@
             <Opacity>1.0</Opacity>
         </Active>
     </WindowStyle>
-    <TrayStyle decorations="flat">
-        <Font>DejaVu Sans-10</Font>
-        <Background>#2B2B2B</Background>
-        <Foreground>#ECECEC</Foreground>
-        <Opacity>1.0</Opacity>
-    </TrayStyle>
-    <TaskListStyle list="all" group="false">
-        <Font>DejaVu Sans-10</Font>
-        <Foreground>#ECECEC</Foreground>
-        <Background>#2B2B2B</Background>
-        <Active>
-            <Foreground>#1E1E1E</Foreground>
-            <Background>#B88B4C</Background>
-        </Active>
-    </TaskListStyle>
-    <PagerStyle>
-        <Foreground>#414141</Foreground>
-        <Background>#2B2B2B</Background>
-        <Text>#ECECEC</Text>
-        <Active>
-            <Foreground>#D4A865</Foreground>
-            <Background>#B88B4C</Background>
-        </Active>
-    </PagerStyle>
     <MenuStyle decorations="flat">
         <Font>DejaVu Sans-10</Font>
         <Foreground>#ECECEC</Foreground>
