@@ -33,6 +33,7 @@
             <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
             <Program icon="audio-card" label="NAMix">namix-standalone</Program>
             <Program icon="audio-card" label="DRUMix">drumix-standalone</Program>
+            <Program icon="wine" label="Windows Plugins">vstbridgectl-gtk</Program>
         </Menu>
         <Menu icon="applications-accessories" label="Accessories">
             <Program icon="org.xfce.mousepad" label="Text Editor">mousepad</Program>
@@ -41,6 +42,8 @@
         <Menu icon="preferences-system" label="System">
             <Program icon="/usr/share/pixmaps/pivuan/pivuan.png" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
             <Program icon="cpu-power" label="CPU Power">cpu-power</Program>
+            <Program icon="wine" label="Wine Configuration">winecfg</Program>
+            <Program icon="wine" label="Uninstall Windows Programs">wine uninstaller</Program>
             <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
             <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
             <Program icon="video-display" label="Display">lxrandr</Program>

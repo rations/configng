@@ -102,6 +102,10 @@ It installs:
 - **JACK** with realtime scheduling for the `audio` group, and the Pivuan audio applications
   from the Pivuan apt repository: Jack Graph, JackDAW, NAMp, NAMix, lvtuner, DRUMix and
   CPU Power,
+- **vstbridge** for Windows VST2, VST3 and CLAP plugins in the audio programs ("Windows
+  Plugins" in the Audio menu), with **Wine** and **FEX** for Windows programs, such as plugin
+  installers and licence managers: they open from a right-click in pcmanfm ("Wine Windows
+  Program Loader"). Everything uses the Wine prefix `~/.wine`,
 - **PulseAudio** for everything else: HDMI, Bluetooth speakers and headphones, the browser and
   media player. The speaker in the tray opens Volume Control (pavucontrol); its scroll wheel
   changes the volume. A USB audio interface is an output as soon as it is plugged in (if

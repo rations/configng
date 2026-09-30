@@ -76,6 +76,9 @@ tiers:
       - lvtuner
       - drumix
       - cpu-power
+      # Windows plugins in the audio programs: vstbridge, which brings Wine with FEX
+      # (wine-fex) for running Windows programs (Pivuan apt repository)
+      - vstbridge
 
 devuan:
   # Browser: Brave Origin from Brave's apt repository (module_desktops).
