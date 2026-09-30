@@ -33,7 +33,7 @@
             <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
             <Program icon="audio-card" label="NAMix">namix-standalone</Program>
             <Program icon="audio-card" label="DRUMix">drumix-standalone</Program>
-            <Program icon="wine" label="Windows Plugins">vstbridgectl-gtk</Program>
+            <Program icon="wine" label="vstbridge">vstbridgectl-gtk</Program>
         </Menu>
         <Menu icon="applications-accessories" label="Accessories">
             <Program icon="org.xfce.mousepad" label="Text Editor">mousepad</Program>
