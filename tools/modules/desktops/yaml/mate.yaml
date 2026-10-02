@@ -55,6 +55,7 @@ tiers:
 # dependable choice.
 devuan:
   packages_remove:
+    - xserver-xorg            # XLibre instead (below)
     - pipewire-audio
     - pipewire-pulse
     - wireplumber
@@ -62,6 +63,14 @@ devuan:
     - pulseaudio
     - pulseaudio-module-bluetooth
     - mate-polkit             # password dialog for polkit (NetworkManager, disks, shutdown), autostarted in MATE
+    # X server: XLibre from the Pivuan apt repository, as on Pivuan Audio (audio.yaml),
+    # instead of Xorg: its core (modesetting driver and glamor) and libinput.
+    - xserver-xlibre-core
+    - xserver-xlibre-input-libinput
+    - x11-xkb-utils
+    - keyboard-configuration
+    - libgl1-mesa-dri         # Mesa (V3D) for the modesetting driver's GPU acceleration
+    - picom                   # compositor (postinst): smooth window moves, no redraw trails or tearing
 
 releases:
   bookworm:

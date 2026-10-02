@@ -8,6 +8,14 @@ if [ -f /etc/lightdm/lightdm.conf.d/11-armbian.conf ]; then sed -i 's/^user-sess
 # disable Pulseaudio timer scheduling which does not work with sndhdmi driver
 if [ -f /etc/pulse/default.pa ]; then sed "s/load-module module-udev-detect$/& tsched=0/g" -i /etc/pulse/default.pa; fi
 
+# Pivuan: picom is the compositor on XLibre, with Pivuan Audio's settings
+# (/etc/pivuan/picom.conf: XRender in step with the screen, no shadows), which
+# move windows smoothly on the Pi 5 without redraw trails. marco's own
+# compositor is turned off (compositing-manager=false below).
+desktops_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+install -Dm 0644 "${desktops_dir}/branding/picom/pivuan-picom.conf" /etc/pivuan/picom.conf
+install -Dm 0644 "${desktops_dir}/branding/picom/pivuan-picom.desktop" /etc/xdg/autostart/pivuan-picom.desktop
+
 ##dconf desktop settings
 keys=/etc/dconf/db/local.d/00-desktop
 profile=/etc/dconf/profile/user
@@ -44,6 +52,9 @@ secondary-color='#FFFFFF'
 [org/mate/desktop/wm/preferences]
 num-workspaces=2
 theme='Numix'
+
+[org/mate/marco/general]
+compositing-manager=false
 
 [org/mate/settings-daemon/plugins/power]
 button-power='interactive'
@@ -149,6 +160,7 @@ icon-theme='Numix'
 [org.mate.Marco.general]
 theme='Numix'
 num-workspaces=2
+compositing-manager=false
 
 [org.mate.caja.desktop]
 home-icon-visible=false

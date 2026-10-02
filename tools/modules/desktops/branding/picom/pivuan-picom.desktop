@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Compositor
+Comment=Smooth window moves, without redraw trails or tearing (picom)
+Exec=picom --config /etc/pivuan/picom.conf
+TryExec=picom
+OnlyShowIn=XFCE;MATE;
+NoDisplay=true
+X-XFCE-Autostart-Override=true
