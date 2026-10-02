@@ -6,3 +6,4 @@
 /lib/
 # pivuan-config .deb (tools/pivuan/build-deb.sh)
 /output/
+CLAUDE.md
