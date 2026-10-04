@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# Pivuan Audio: the on-screen keyboard (Onboard), for touchscreens. Installed as
+# /usr/lib/pivuan/keyboard by postinst/audio.sh.
+#
+#   keyboard toggle   show the keyboard, or hide it if it is showing (the panel button and the
+#                     System menu); starts Onboard if it is not running
+#   keyboard start    start Onboard hidden, at login, so the first tap shows it at once
+#   keyboard touch    exit 0 if a touchscreen is attached
+#
+# Onboard's D-Bus service is org.onboard.Onboard, object /org/onboard/Onboard/Keyboard,
+# interface org.onboard.Onboard.Keyboard, with the methods Show, Hide and ToggleVisible
+# (Onboard 1.4.1, Onboard/OnboardGtk.py). It is on the session bus dbus-run-session gives the
+# session (~/.xinitrc), and Onboard's D-Bus service file lets the bus start it for the first
+# call. Onboard starts hidden (start-minimized in /etc/onboard/onboard-defaults.conf), so that
+# first call shows it.
+#
+name=org.onboard.Onboard
+object=/org/onboard/Onboard/Keyboard
+interface=org.onboard.Onboard.Keyboard
+
+# True if Onboard holds its name on the session bus, i.e. is running.
+running() {
+	dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+		org.freedesktop.DBus.NameHasOwner string:"${name}" 2> /dev/null | grep -q 'boolean true'
+}
+
+# A touchscreen is an input device with INPUT_PROP_DIRECT (bit 0) in its properties bitmap
+# (linux/input-event-codes.h), printed by the kernel in hex: a touchpad or a mouse does not
+# have it. The login screen (xlogin) uses the same test.
+touchscreen() {
+	for file in /sys/class/input/input*/properties; do
+		[ -r "${file}" ] || continue
+		read -r bits < "${file}" || continue
+		last="${bits##* }"
+		case "${last}" in "" | *[!0-9a-fA-F]*) continue ;; esac
+		[ $((0x${last} & 1)) -ne 0 ] && return 0
+	done
+	return 1
+}
+
+case "$1" in
+	toggle)
+		command -v onboard > /dev/null 2>&1 || exit 1
+		dbus-send --session --type=method_call --dest="${name}" "${object}" \
+			"${interface}.ToggleVisible" > /dev/null 2>&1
+		;;
+	start)
+		command -v onboard > /dev/null 2>&1 || exit 0
+		running || onboard > /dev/null 2>&1 &
+		;;
+	touch)
+		touchscreen
+		;;
+	*)
+		echo "usage: $0 toggle|start|touch" >&2
+		exit 2
+		;;
+esac

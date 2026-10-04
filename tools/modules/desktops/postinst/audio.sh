@@ -42,6 +42,11 @@ install -Dm 0644 "${desktops_dir}/branding/picom/pivuan-picom.conf" /etc/pivuan/
 #    System > Desktop Settings in the menu).
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivuan/jwm-desktop
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-settings" /usr/bin/pivuan-desktop-settings
+#    The on-screen keyboard for touchscreens: /usr/lib/pivuan/keyboard shows and hides Onboard
+#    (the panel button, when Desktop Settings has the keyboard on), and Onboard's first
+#    settings dock it above the panel and start it hidden.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-keyboard" /usr/lib/pivuan/keyboard
+install -Dm 0644 "${desktops_dir}/branding/onboard/onboard-defaults.conf" /etc/onboard/onboard-defaults.conf
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
 [ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session

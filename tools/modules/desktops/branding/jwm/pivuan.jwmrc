@@ -47,6 +47,7 @@
             <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
             <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
             <Program icon="video-display" label="Display">lxrandr</Program>
+            <Program icon="input-keyboard" label="On-screen Keyboard">/usr/lib/pivuan/keyboard toggle</Program>
             <Program icon="preferences-desktop-personal" label="Desktop Settings">pivuan-desktop-settings</Program>
             <Program icon="preferences-desktop-theme" label="Appearance">lxappearance</Program>
         </Menu>

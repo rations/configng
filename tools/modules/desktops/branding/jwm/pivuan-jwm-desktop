@@ -16,6 +16,9 @@
 #                               (default 22)
 #   panel_colour=#RRGGBB        the panel's colour (default #2B2B2B); its text is light on a
 #                               dark panel and dark on a light one
+#   keyboard=auto|yes|no        the on-screen keyboard (Onboard): a panel button that shows and
+#                               hides it, and Onboard started hidden at login. auto (default):
+#                               only when a touchscreen is attached (/usr/lib/pivuan/keyboard)
 # Without the file, or with lines it does not understand, the defaults are used: the panel
 # always comes up.
 #
@@ -32,11 +35,13 @@ autohide=no
 launchers=""
 panel_size=30
 panel_colour="#2B2B2B"
+keyboard=auto
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
 		case "${line}" in
 			background=*) background="${line#background=}" ;;
 			autohide=yes) autohide=yes ;;
+			keyboard=auto | keyboard=yes | keyboard=no) keyboard="${line#keyboard=}" ;;
 			panel_size=*)
 				value="${line#panel_size=}"
 				case "${value}" in
@@ -57,6 +62,16 @@ if [ -r "${config}" ]; then
 fi
 [ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
 icons="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/panel-icons"
+
+# The on-screen keyboard, when it is wanted and Onboard is installed.
+if [ "${keyboard}" = auto ]; then
+	if [ -x /usr/lib/pivuan/keyboard ] && /usr/lib/pivuan/keyboard touch; then
+		keyboard=yes
+	else
+		keyboard=no
+	fi
+fi
+command -v onboard > /dev/null 2>&1 || keyboard=no
 
 # The panel's text: dark on a light panel, light on a dark one (perceived brightness of
 # #RRGGBB); the pager's other desktops a little towards the text colour.
@@ -133,6 +148,11 @@ speaker=audio-speakers
 echo '        <Pager labeled="true"/>'
 echo '        <TaskList maxwidth="240"/>'
 echo '        <Dock/>'
+if [ "${keyboard}" = yes ]; then
+	kbd_icon=input-keyboard
+	[ -f "${icons}/input-keyboard.png" ] && kbd_icon="${icons}/input-keyboard.png"
+	echo "        <TrayButton icon=\"$(xml "${kbd_icon}")\" popup=\"On-screen keyboard\">exec:/usr/lib/pivuan/keyboard toggle</TrayButton>"
+fi
 echo "        <TrayButton icon=\"$(xml "${speaker}")\" popup=\"Volume Control (scroll to change the volume)\">"
 cat << 'EOF'
 
@@ -144,6 +164,9 @@ cat << 'EOF'
         <Spacer width="4"/>
     </Tray>
 EOF
+# Onboard starts hidden, so the first tap on the keyboard button shows it at once. JWM runs a
+# StartupCommand when it starts, not when it restarts.
+[ "${keyboard}" = yes ] && echo '    <StartupCommand>/usr/lib/pivuan/keyboard start</StartupCommand>'
 echo '    <Desktops width="2" height="1">'
 echo "        <Background type=\"scale\">$(xml "${background}")</Background>"
 echo '    </Desktops>'
