@@ -49,6 +49,7 @@ tiers:
       - adwaita-icon-theme
       - pivuan-icon-theme        # the default icons (Haiku's), in the menu and pcmanfm (Pivuan apt repository)
       - numix-icon-theme         # the icons Pivuan's theme lacks (it inherits Numix's)
+      - pivuan-plymouth-theme    # the boot splash (Pivuan apt repository), for images made before it
       - fonts-dejavu-core
       # Disks, removable media and trash in pcmanfm
       - udisks2

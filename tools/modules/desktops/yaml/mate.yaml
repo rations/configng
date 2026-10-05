@@ -74,6 +74,9 @@ devuan:
     # The Pivuan icon theme (Haiku's icons) from the Pivuan apt repository, to pick in
     # Appearance; Numix stays the default.
     - pivuan-icon-theme
+    # The Pivuan boot splash (plymouth theme) from the Pivuan apt repository; images made
+    # before it get it here.
+    - pivuan-plymouth-theme
 
 releases:
   bookworm:
