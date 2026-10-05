@@ -31,7 +31,8 @@ mkdir -p "${pkg}/DEBIAN" "${pkg}/usr/bin" "${pkg}/usr/lib" "${pkg}/usr/share/arm
 cp -a "${work}/src/lib/." "${pkg}/usr/lib/"
 cp -a "${work}/src/share/." "${pkg}/usr/share/"
 cp -a "${work}/src/tools/modules/desktops" "${pkg}/usr/share/armbian-config/"
-cp -a "${work}/src/tools/modules/system/runner-cleanup" "${pkg}/usr/share/armbian-config/"
+# Not tools/modules/system/runner-cleanup (Armbian ships it): it is for GitHub runner hosts,
+# whose menu (Software > Armbian) is hidden on Devuan, and it brings systemd units.
 install -m 0755 "${work}/src/bin/armbian-config" "${pkg}/usr/bin/pivuan-config"
 # Shown by `pivuan-config --doc`: the README of https://github.com/rations/pivuan
 # without its HTML logo header. Keep the two in step.
