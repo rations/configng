@@ -121,6 +121,8 @@ sudo armbian-config
     - ### Memory management - enable features
     - ### Memory management - disable features
     - ### Memory management - tune parameters
+    - ### Tuning profiles - match kernel and CPU tuning to this machine's role
+    - ### Tuning profiles - show the active profile and live kernel values
 
 
   - ### Manage SSH daemon options, enable 2FA
@@ -154,8 +156,7 @@ sudo armbian-config
     - ### Switch system to stable packages repository
     - ### Distribution upgrade to latest stable / LTS
     - ### Distribution upgrade to rolling unstable
-    - ### Enable automating Docker container base images updating
-    - ### Disable automating Docker container base images updating
+    - ### Disable automating Docker image updating (Watchtower, unmaintained)
     - ### Enable automatic package updates.
     - ### Configure automatic package updates
     - ### Disable automatic package updates
@@ -343,6 +344,9 @@ sudo armbian-config
     - ### git_cdn GitHub caching proxy install
     - ### git_cdn remove
     - ### git_cdn purge with cache folder
+    - ### OCI registry cache (ghcr.io mirror) install
+    - ### OCI registry cache remove
+    - ### OCI registry cache purge with cache folder
     - ### SAMBA Remote File share
     - ### Webmin web-based management tool
 
@@ -596,6 +600,8 @@ Outputs:
 	--cmd MEM001 - Memory management - enable features
 	--cmd MEM002 - Memory management - disable features
 	--cmd MEM003 - Memory management - tune parameters
+	--cmd TUNE01 - Tuning profiles - match kernel and CPU tuning to this machine's role
+	--cmd TUNE02 - Tuning profiles - show the active profile and live kernel values
     Access - Manage SSH daemon options, enable 2FA
 	--cmd ACC001 - Disable root login
 	--cmd ACC002 - Enable root login
@@ -623,8 +629,7 @@ Outputs:
 	--cmd STABLE - Switch system to stable packages repository
 	--cmd STD001 - Distribution upgrade to latest stable / LTS
 	--cmd UNS001 - Distribution upgrade to rolling unstable
-	--cmd WTC001 - Enable automating Docker container base images updating
-	--cmd WTC002 - Disable automating Docker container base images updating
+	--cmd WTC002 - Disable automating Docker image updating (Watchtower, unmaintained)
 	--cmd UNAT01 - Enable automatic package updates.
 	--cmd UNAT02 - Configure automatic package updates
 	--cmd UNAT03 - Disable automatic package updates
@@ -770,6 +775,9 @@ Outputs:
 	--cmd GCD001 - git_cdn GitHub caching proxy install
 	--cmd GCD002 - git_cdn remove
 	--cmd GCD003 - git_cdn purge with cache folder
+	--cmd REG001 - OCI registry cache (ghcr.io mirror) install
+	--cmd REG002 - OCI registry cache remove
+	--cmd REG003 - OCI registry cache purge with cache folder
 	--cmd SMB001 - SAMBA Remote File share
 	--cmd WBM001 - Webmin web-based management tool
     Media - Media servers, organizers and editors
@@ -1226,7 +1234,7 @@ These helper functions facilitate various operations related to job management, 
 | Display a menu from pipe | show_menu <<< armbianmonitor -h  ;  | @Tearran 
 | Start service | srv_start ssh.service | @dimitry-ishenko 
 | Enable/disable device tree overlays | install remove edit show help | @viraniac 
-| Install watchtower container | install remove purge status help | @armbian 
+| Remove watchtower container (install no longer offered) | remove purge status help | @armbian 
 | Build the main menu from a object | generate_top_menu 'json_data' | @Tearran 
 | Install bazarr container | install remove purge status help | @igorpecovnik 
 | Proxmox VE on top of the Armbian kernel (Debian trixie) | install remove purge status help | @igorpecovnik 
@@ -1238,7 +1246,7 @@ These helper functions facilitate various operations related to job management, 
 | Install sonarr container | install remove purge status help | @armbian 
 | Display a yes/no dialog using the configured dialog tool | dialog_yesno "Title" "Question" | @armbian 
 | Generate Document files. | generate_readme | @Tearran 
-|  |  | @igorpecovnik 
+| Storing netplan config to tmp | store_netplan_config | @igorpecovnik 
 | Generic module help dialog for containers and native installs | show_module_help "module_headers" "Kernel Headers" "" "native" | @armbian 
 | Install PostgreSQL container (advanced relational database) | install remove purge status help | @armbian 
 | Install jellyfin container | install remove purge status help | @armbian 
@@ -1298,6 +1306,7 @@ These helper functions facilitate various operations related to job management, 
 | Generate jobs from JSON file. | generate_jobs_from_json | @Tearran 
 | Install Filebrowser container | install remove purge status help | @armbian 
 | Display a warning with a gauge for 10 seconds then continue |  | @igorpecovnik 
+| Kernel and CPU tuning profiles for the machine's actual role | select apply status list reset help | @igorpecovnik 
 | Install armbian router container | install remove purge status help | @armbian 
 | Install hastebin container | install remove purge status help | @armbian 
 | Fix dependency issues | pkg_fix | @igorpecovnik 
@@ -1313,6 +1322,7 @@ These helper functions facilitate various operations related to job management, 
 | Install actualbudget container | install remove purge status help | @armbian 
 | Install transmission container | install remove purge status help | @armbian 
 | Install nextcloud container | install remove purge status help | @igorpecovnik 
+| Install OCI registry pull-through cache container (ghcr.io mirror) | install remove purge status help | @igorpecovnik 
 | Install navidrome container | install remove purge status help | @armbian 
 | Wait for a Docker container to be ready (default: check if running) | wait_for_container_ready "container_name" 20 3 | @armbian 
 | Install Armbian desktop branding assets | module_desktop_branding xfce | @igorpecovnik 

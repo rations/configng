@@ -92,6 +92,14 @@ fi
 KEEP_IMAGES=(
 	lscr.io/linuxserver/swag:latest
 	lscr.io/linuxserver/openssh-server:latest
+	# Build caches the runners depend on (apt / OCI / git / ccache). They are
+	# long-lived services, but their images are NOT otherwise in any keep list
+	# and survive only while their container runs. A transient stop lets Pass 1
+	# force-remove the image, after which Docker cannot restart the container and
+	# the service stays down for good — this is how redis:alpine (the ccache
+	# backend) was lost, killing ccache remote hits.
+	redis:alpine
+	registry:3
 )
 # Like KEEP_IMAGES, but matched as a *repository prefix* (any tag), so a whole
 # family of tags is preserved without enumerating each. Protects the Armbian
@@ -103,6 +111,10 @@ KEEP_IMAGES=(
 KEEP_IMAGE_PREFIXES=(
 	ghcr.io/armbian/docker-armbian-build
 	armbian.local.only/armbian-build
+	# Build-cache services (see KEEP_IMAGES note): protect by prefix so any tag
+	# of the Armbian-published cache images is kept even across a container stop.
+	ghcr.io/armbian/apt-cacher-ng
+	ghcr.io/armbian/git_cdn
 )
 KEEP_RUNNERS_WORK=(
 	actions-runner-01
@@ -264,13 +276,25 @@ for user in "${idle[@]}"; do
 		continue
 	fi
 
+	# Re-check busy NOW, not just at the start-of-loop partition above. This
+	# loop stops+wipes runners one by one and a multi-GB _work wipe takes 30s+,
+	# so a job can land on a runner that was idle when the scan ran minutes ago.
+	# Wiping its _work then deletes the LIVE job's _work/_temp (e.g.
+	# _runner_file_commands) and fails it ("Missing file ... set_output").
+	if pgrep -u "$user" -f 'Runner.Worker' > /dev/null 2>&1; then
+		log "skip ${user} — a job started since the idle scan (busy now)"
+		continue
+	fi
+
 	unit=$(find_runner_unit "$user")
 	if [[ -z "$unit" ]]; then
-		# No svc.sh-installed unit found — fall back to wipe without
-		# stop. Runner might be running in a tmux session, foreground,
-		# or under a different supervisor.
-		log "wipe ${work}/ (no systemd unit for ${user}, no stop/start)"
-		run find "$work" -mindepth 1 -delete
+		# No svc.sh-installed unit found (tmux session, foreground, or a
+		# different supervisor). We have no way to stop this runner, so we
+		# cannot keep it from picking up a job between the pgrep above and the
+		# wipe below -- and a wipe mid-job deletes the live job's _work/_temp
+		# and fails it. Without a safe stop, skip the wipe rather than risk
+		# corrupting a job we can't protect.
+		log "skip ${user} — no systemd unit to stop; not wiping (cannot guard against a mid-wipe job)"
 		continue
 	fi
 
@@ -279,6 +303,20 @@ for user in "${idle[@]}"; do
 		# Record in the trap-tracked set BEFORE the wipe — if we
 		# get killed during wipe, the EXIT trap will restart it.
 		[[ $DRY_RUN -eq 0 ]] && stopped_unit_for["$unit"]=1
+		# These runner units are KillMode=process: `systemctl stop` kills only
+		# the unit's main pid and LEAVES a running Runner.Worker (and its build)
+		# alive — "stop" does NOT quiesce a job that slipped in. Wiping now would
+		# corrupt that live job. Confirm no Worker survived the stop before
+		# deleting; if one did, restart the unit and skip the wipe this pass.
+		if pgrep -u "$user" -f 'Runner.Worker' > /dev/null 2>&1; then
+			note "WARNING: ${user} still has a running job after stop (KillMode=process) — restarting, NOT wiping"
+			if run systemctl start "${unit}.service"; then
+				[[ $DRY_RUN -eq 0 ]] && unset 'stopped_unit_for[$unit]'
+			else
+				note "WARNING: failed to restart ${unit}.service for ${user} — runner is offline until manual start"
+			fi
+			continue
+		fi
 		run find "$work" -mindepth 1 -delete
 		if run systemctl start "${unit}.service"; then
 			[[ $DRY_RUN -eq 0 ]] && unset 'stopped_unit_for[$unit]'
