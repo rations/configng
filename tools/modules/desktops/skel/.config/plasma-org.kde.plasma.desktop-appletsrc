@@ -8,5 +8,5 @@ plugin=org.kde.desktopcontainment
 wallpaperplugin=org.kde.image
 
 [Containments][1][Wallpaper][org.kde.image][General]
-Image=file:///usr/share/backgrounds/pivuan/background-dark-gray.png
+Image=file:///usr/share/backgrounds/pivuan/background-black.png
 FillMode=1

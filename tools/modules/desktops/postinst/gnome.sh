@@ -57,14 +57,14 @@ cat >> "$keys" <<- EOF
 	click-method='areas'
 
 	[org/gnome/desktop/background]
-	picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
-	picture-uri-dark='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
+	picture-uri='file:///usr/share/backgrounds/pivuan/background-black.png'
+	picture-uri-dark='file:///usr/share/backgrounds/pivuan/background-black.png'
 	picture-options='zoom'
 	primary-color='#456789'
 	secondary-color='#FFFFFF'
 
 	[org/gnome/desktop/screensaver]
-	picture-uri='file:///usr/share/backgrounds/pivuan/background-dark-gray.png'
+	picture-uri='file:///usr/share/backgrounds/pivuan/background-black.png'
 	picture-options='zoom'
 	primary-color='#456789'
 	secondary-color='#FFFFFF'

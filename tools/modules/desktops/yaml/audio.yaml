@@ -43,8 +43,7 @@ tiers:
       - lxrandr
       - lxappearance
       - onboard                  # on-screen keyboard for touchscreens (the panel button)
-      - python3-gi              # Desktop Settings (pivuan-desktop-settings): background,
-      - gir1.2-gtk-3.0          # panel icons, hiding the panel
+      - pivuan-desktop-settings  # Desktop Settings: background, panel and its icons (Pivuan apt repository)
       - xdg-utils
       - adwaita-icon-theme
       - pivuan-icon-theme        # the default icons (Haiku's), in the menu and pcmanfm (Pivuan apt repository)

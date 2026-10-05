@@ -7,15 +7,15 @@
 #
 # The settings are in ~/.config/pivuan/desktop.conf, written by Desktop Settings
 # (pivuan-desktop-settings); one per line:
-#   background=<picture>        the desktop background (default: Pivuan dark gray)
+#   background=<picture>        the desktop background (default: Pivuan black)
 #   autohide=yes|no             hide the panel at the bottom edge until the mouse reaches it
 #   launcher=<name>.desktop     a program icon on the panel, in this order (from the
 #                               programs' .desktop files)
 #   panel_size=<pixels>         the panel's height, 20 to 96 (default 30)
 #   icon_size=<pixels>          the program icons' size, 12 up to the panel's height - 8
 #                               (default 22)
-#   panel_colour=#RRGGBB        the panel's colour (default #2B2B2B); its text is light on a
-#                               dark panel and dark on a light one
+#   panel_colour=#RRGGBB        the panel's colour (default #959597, the grey of the Pivuan logo);
+#                               its text is light on a dark panel and dark on a light one
 #   keyboard=auto|yes|no        the on-screen keyboard (Onboard): a panel button that shows and
 #                               hides it, and Onboard started hidden at login. auto (default):
 #                               only when a touchscreen is attached (/usr/lib/pivuan/keyboard)
@@ -28,13 +28,13 @@
 # so all are the same size. Without that file, the icon is looked up by its name.
 #
 config="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/desktop.conf"
-default_background=/usr/share/backgrounds/pivuan/background-dark-gray.png
+default_background=/usr/share/backgrounds/pivuan/background-black.png
 
 background=""
 autohide=no
 launchers=""
 panel_size=30
-panel_colour="#2B2B2B"
+panel_colour="#959597"
 keyboard=auto
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
@@ -88,6 +88,14 @@ else
 fi
 pager="$(printf '#%02X%02X%02X' $(((red * 85 + shade * 15) / 100)) $(((green * 85 + shade * 15) / 100)) \
 	$(((blue * 85 + shade * 15) / 100)))"
+# The menu button's logo: on a dark panel the logo as it is; on any other (the default
+# #959597 is the grey of the logo's "v" and traces) the one with them outlined in white
+# (pivuan-config's /usr/share/pixmaps/pivuan/pivuan-panel.png).
+logo=/usr/share/pixmaps/pivuan/pivuan.png
+if [ $(((299 * red + 587 * green + 114 * blue) / 1000)) -ge 96 ] \
+	&& [ -f /usr/share/pixmaps/pivuan/pivuan-panel.png ]; then
+	logo=/usr/share/pixmaps/pivuan/pivuan-panel.png
+fi
 
 # Text for XML: & < > " escaped.
 xml() {
@@ -128,7 +136,7 @@ echo '<?xml version="1.0"?>'
 echo '<JWM>'
 if [ "${autohide}" = yes ]; then hide=bottom; else hide=off; fi
 echo "    <Tray x=\"0\" y=\"-1\" height=\"${panel_size}\" autohide=\"${hide}\">"
-echo '        <TrayButton icon="/usr/share/pixmaps/pivuan/pivuan.png" popup="Pivuan menu">root:1</TrayButton>'
+echo "        <TrayButton icon=\"${logo}\" popup=\"Pivuan menu\">root:1</TrayButton>"
 echo '        <Spacer width="4"/>'
 buttons=0
 for id in ${launchers}; do

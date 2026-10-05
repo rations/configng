@@ -38,13 +38,14 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-pulse-session" /usr/lib/pi
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-autostart" /usr/lib/pivuan/autostart
 install -Dm 0644 "${desktops_dir}/branding/picom/pivuan-picom.conf" /etc/pivuan/picom.conf
 #    The panel and the desktop background come from /usr/lib/pivuan/jwm-desktop (included by
-#    pivuan.jwmrc), which reads the user's Desktop Settings (pivuan-desktop-settings,
-#    System > Desktop Settings in the menu).
+#    pivuan.jwmrc), which reads the user's Desktop Settings (System > Desktop Settings in the
+#    menu: the pivuan-desktop-settings package, rations/pivuan desktop-settings/, whose
+#    defaults are jwm-desktop's).
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivuan/jwm-desktop
-install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-settings" /usr/bin/pivuan-desktop-settings
 #    The on-screen keyboard for touchscreens: /usr/lib/pivuan/keyboard shows and hides Onboard
-#    (the panel button, when Desktop Settings has the keyboard on), and Onboard's first
-#    settings dock it above the panel and start it hidden.
+#    (the panel button, when Desktop Settings has the keyboard on, and System > On-screen
+#    Keyboard in the menu), and Onboard's first settings dock it above the panel and start it
+#    hidden.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-keyboard" /usr/lib/pivuan/keyboard
 install -Dm 0644 "${desktops_dir}/branding/onboard/onboard-defaults.conf" /etc/onboard/onboard-defaults.conf
 cat > /etc/skel/.xinitrc << 'EOF'
@@ -75,15 +76,15 @@ fi
 #    background name, below).
 backgrounds=/usr/share/xlogin/backgrounds
 install -d -m 0755 "${backgrounds}"
-# The Pivuan backgrounds, picked in xlogin's Options menu; dark gray is the default.
+# The Pivuan backgrounds, picked in xlogin's Options menu; black is the default.
 # xlogin only reads root-owned files that nobody else can write.
 for image in /usr/share/backgrounds/pivuan/background-*.png; do
 	[ -f "${image}" ] || continue
 	install -m 0644 -o root -g root "${image}" "${backgrounds}/${image##*/}"
 done
-# The background before there were several (pivuan-background.png) is now dark gray.
+# The background before there were several (pivuan-background.png) is now black.
 if [ -f /etc/xlogin.conf ]; then
-	sed -i "s/^XLOGIN_BACKGROUND='pivuan-background\.png'$/XLOGIN_BACKGROUND='background-dark-gray.png'/" /etc/xlogin.conf
+	sed -i "s/^XLOGIN_BACKGROUND='pivuan-background\.png'$/XLOGIN_BACKGROUND='background-black.png'/" /etc/xlogin.conf
 fi
 if [ ! -f /etc/xlogin.conf ]; then
 	cat > /etc/xlogin.conf << 'EOF'
@@ -101,7 +102,7 @@ XSERVER_FLAGS="-seat seat0 -keeptty -nolisten tcp -ac"
 XLOGIN_CONSOLE_VT='2'
 
 # Background image: a file in /usr/share/xlogin/backgrounds, or empty for none.
-XLOGIN_BACKGROUND='background-dark-gray.png'
+XLOGIN_BACKGROUND='background-black.png'
 
 # fill | fit | center | stretch | tile
 XLOGIN_BG_MODE='fill'

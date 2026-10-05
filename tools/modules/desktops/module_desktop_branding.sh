@@ -49,7 +49,7 @@ function module_desktop_branding() {
 			fi
 
 			# wallpapers (Pivuan: the Pivuan backgrounds, background-<colour>.png in
-			# /usr/share/backgrounds/pivuan; background-dark-gray.png is the default
+			# /usr/share/backgrounds/pivuan; background-black.png is the default
 			# for the desktops and the LightDM greeter)
 			if [[ -d "$desktop_dir/branding/wallpapers" ]]; then
 				mkdir -p /usr/share/backgrounds/pivuan
