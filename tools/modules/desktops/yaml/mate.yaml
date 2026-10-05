@@ -71,6 +71,9 @@ devuan:
     - keyboard-configuration
     - libgl1-mesa-dri         # Mesa (V3D) for the modesetting driver's GPU acceleration
     - picom                   # compositor (postinst): smooth window moves, no redraw trails or tearing
+    # The Pivuan icon theme (Haiku's icons) from the Pivuan apt repository, to pick in
+    # Appearance; Numix stays the default.
+    - pivuan-icon-theme
 
 releases:
   bookworm:

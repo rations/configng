@@ -54,13 +54,14 @@ exec dbus-run-session jwm
 EOF
 chmod 0755 /etc/skel/.xinitrc
 
-#    GTK programs (pcmanfm, Volume Control, file dialogs) use the Numix icons,
-#    as on MATE and XFCE. The theme stays GTK's own; lxappearance changes both.
+#    GTK programs (pcmanfm, Volume Control, file dialogs) use the Pivuan icons
+#    (pivuan-icon-theme, Haiku's icons, with Numix for the ones it lacks). The theme
+#    stays GTK's own; lxappearance changes both.
 mkdir -p /etc/skel/.config/gtk-3.0 /etc/skel/.config/gtk-4.0
 for gtk in gtk-3.0 gtk-4.0; do
-	printf '[Settings]\ngtk-icon-theme-name=Numix\n' > "/etc/skel/.config/${gtk}/settings.ini"
+	printf '[Settings]\ngtk-icon-theme-name=Pivuan\n' > "/etc/skel/.config/${gtk}/settings.ini"
 done
-printf 'gtk-icon-theme-name="Numix"\n' > /etc/skel/.gtkrc-2.0
+printf 'gtk-icon-theme-name="Pivuan"\n' > /etc/skel/.gtkrc-2.0
 
 #    PulseAudio: the Pi's HDMI audio needs timer-based scheduling off (as
 #    postinst/xfce.sh does for the same reason).

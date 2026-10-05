@@ -107,9 +107,16 @@
         <Background>#ECECEC</Background>
     </PopupStyle>
 
-    <!-- Icons: JWM looks only in these folders, in this order. The Numix theme
-         first (as on MATE and XFCE; its action icons stop at 32 pixels), then
-         the programs' own icons. -->
+    <!-- Icons: JWM looks only in these folders, in this order. The Pivuan theme
+         first (pivuan-icon-theme, Haiku's icons), then Numix for the icons it
+         lacks (its action icons stop at 32 pixels), then the programs' own icons. -->
+    <IconPath>/usr/share/icons/Pivuan/48x48/apps</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/categories</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/devices</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/places</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/status</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/mimetypes</IconPath>
+    <IconPath>/usr/share/icons/Pivuan/48x48/actions</IconPath>
     <IconPath>/usr/share/icons/Numix/48/apps</IconPath>
     <IconPath>/usr/share/icons/Numix/48/categories</IconPath>
     <IconPath>/usr/share/icons/Numix/48/devices</IconPath>
