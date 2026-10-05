@@ -91,7 +91,8 @@ It installs:
 - **vstbridge** for Windows VST2, VST3 and CLAP plugins in the audio programs ("vstbridge"
   in the Audio menu), with **Wine** and **FEX** for Windows programs, such as plugin
   installers and licence managers: they open from a right-click in pcmanfm ("Wine Windows
-  Program Loader"). Everything uses the Wine prefix `~/.wine`,
+  Program Loader"). Everything uses the Wine prefix `~/.wine`. How this works without DXVK:
+  [wine-fex-info.md](https://github.com/rations/pivuan/blob/master/wine-fex-info.md),
 - **PulseAudio** for everything else: HDMI, Bluetooth speakers and headphones, the browser and
   media player. The speaker in the tray opens Volume Control (pavucontrol); its scroll wheel
   changes the volume. A USB audio interface is an output as soon as it is plugged in (if
@@ -183,7 +184,8 @@ sudo apt update && sudo apt full-upgrade
 - Everything from Devuan (the base system, the desktop, security fixes) comes from
   `deb.devuan.org`.
 - The kernel, device trees, board support and `pivuan-config` come from the **Pivuan apt
-  repository**, `https://rations.github.io/pivuan`, which Pivuan images already use. It is
+  repository**, `https://rations.github.io/pivuan`, which Pivuan images already use. So do
+  Pivuan Audio's XLibre, audio applications, vstbridge and Wine. The repository is
   signed with the key `34EA 4F11 5D83 793B 6C80  3155 4769 929F 204B 18CD`.
 
 The kernel follows the Foundation's `rpi-6.18.y` long-term branch. Each week the build checks
@@ -200,6 +202,7 @@ Pivuan is a fork of the Armbian build framework that builds Devuan with sysvinit
 | [rations/configng](https://github.com/rations/configng) | `armbian-config` (configng) fork, packaged as `pivuan-config`: a sysvinit service backend and the Devuan desktop install |
 | [raspberrypi/linux](https://github.com/raspberrypi/linux) | The Raspberry Pi Foundation's kernel, pinned to a tested `rpi-6.18.y` commit |
 | [rations/pivuan](https://github.com/rations/pivuan) (this repository) | Project page, releases (images), the apt repository (`gh-pages` branch), and the XLibre, vstbridge and Pivuan icon theme package builds |
+| [rations/vstbridge](https://github.com/rations/vstbridge) (branch `arm64`) | vstbridge, the Windows plugin bridge, and the build of its Wine with FEX ([wine-fex-info.md](https://github.com/rations/pivuan/blob/master/wine-fex-info.md)) |
 
 Images are built by GitHub Actions in `rations/build`, from Devuan packages checked against
 Devuan's signing keys. The packages in the image, in each desktop and in the Pivuan apt
@@ -233,8 +236,9 @@ rations/pivuan were drawn by the artists of the
 Haiku project and, with the scripts that build the theme, are under the MIT license (its
 `LICENSE` and `CREDITS.md`). "HAIKU" and the HAIKU logo are trademarks of Haiku, Inc.
 
-**Pivuan artwork.** The Pivuan logo and backgrounds (`pivuan-logo.png`,
-`backgrounds/background-*.png`, and the copies of them in Pivuan images and in
+**Pivuan artwork.** The Pivuan logo and backgrounds (`pivuan-logo.png`, the animated
+`pivuan-logo.gif` and `pivuan-splash.gif`, `backgrounds/background-*.png`, and the copies of
+them in Pivuan images and in
 [rations/configng](https://github.com/rations/configng)) are © 2026 rations, all rights
 reserved. They are not covered by the GPL or any other license in these repositories, and may
 only be used with permission. Please ask by
@@ -244,5 +248,7 @@ The images contain software under many licenses (the Linux kernel is GPL-2.0; De
 Debian packages keep their own licenses, listed in `/usr/share/doc/*/copyright` on the
 system). Source code: the build framework in [rations/build](https://github.com/rations/build)
 (GPL-2.0), `pivuan-config` in [rations/configng](https://github.com/rations/configng)
-(GPL-3.0), the kernel in [raspberrypi/linux](https://github.com/raspberrypi/linux), and every
-Devuan package from Devuan's source archive (`apt source <package>`).
+(GPL-3.0), the kernel in [raspberrypi/linux](https://github.com/raspberrypi/linux), vstbridge
+(GPL-3.0) and the build of its Wine (LGPL-2.1-or-later) and FEX (MIT) in
+[rations/vstbridge](https://github.com/rations/vstbridge), and every Devuan package from Devuan's
+source archive (`apt source <package>`).
