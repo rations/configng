@@ -22,6 +22,8 @@
 #   desktop_icons=yes|no        icons on the desktop: the files in the Desktop folder, such as
 #                               the shortcuts Windows installers make (default yes); pcmanfm
 #                               draws them (/usr/lib/pivuan/desktop-icons)
+#   screen_off=yes|no           turn the screen off after 10 minutes without use (X's own
+#                               default). Default no: the screen stays on
 # Without the file, or with lines it does not understand, the defaults are used: the panel
 # always comes up.
 #
@@ -40,6 +42,7 @@ panel_size=30
 panel_colour="#959597"
 keyboard=auto
 desktop_icons=yes
+screen_off=no
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
 		case "${line}" in
@@ -47,6 +50,7 @@ if [ -r "${config}" ]; then
 			autohide=yes) autohide=yes ;;
 			keyboard=auto | keyboard=yes | keyboard=no) keyboard="${line#keyboard=}" ;;
 			desktop_icons=yes | desktop_icons=no) desktop_icons="${line#desktop_icons=}" ;;
+			screen_off=yes) screen_off=yes ;;
 			panel_size=*)
 				value="${line#panel_size=}"
 				case "${value}" in
@@ -66,6 +70,18 @@ if [ -r "${config}" ]; then
 	done < "${config}"
 fi
 [ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+
+# The screen's blanking and power saving, set here rather than printed: JWM runs this at each
+# start and restart, so at login and whenever Desktop Settings applies. X blanks the screen
+# and turns the monitor off after 10 minutes by default; by default here it stays on.
+if command -v xset > /dev/null 2>&1; then
+	if [ "${screen_off}" = yes ]; then
+		xset s 600 600 +dpms dpms 600 600 600
+	else
+		xset s off -dpms
+	fi
+fi > /dev/null 2>&1
+
 icons="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/panel-icons"
 
 # The on-screen keyboard, when it is wanted and Onboard is installed.
