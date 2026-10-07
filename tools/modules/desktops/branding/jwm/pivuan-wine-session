@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# Pivuan Audio: the services of Windows programs, running for the whole session. Installed as
+# /usr/lib/pivuan/wine-session by postinst/audio.sh; /etc/jwm/pivuan.jwmrc runs "start" at
+# login and "stop" at logout.
+#
+#   wine-session start   if a Windows program installed a service that starts with Windows
+#                        (such as PACE License Services, which iLok and the plugins it
+#                        licenses need), start Wine and keep it running until logout
+#   wine-session stop    end Wine and the Windows programs still running
+#
+# Windows starts such services at boot, long before anyone opens a program, and programs count
+# on them being there: iLok License Manager and iLok plugins try once to reach PACE's service and
+# otherwise report that "a background component iLok needs is not configured". Wine starts them
+# only when the first Windows program starts, at the same moment, and under FEX PACE's service
+# needs several seconds to be ready. Wine also stops them when the last Windows program exits,
+# so each start of a DAW would race again. Here Wine "boots" at login (wineboot, with a
+# wineserver that stays: -p), so the services are ready by the time anything needs them.
+# Without such a service nothing is started: Wine starts with the first Windows program, as
+# before.
+#
+prefix="${WINEPREFIX:-${HOME}/.wine}"
+
+# True if the prefix has a service of a Windows program (not one of Wine's own, which are in
+# C:\windows) that starts automatically. Read from Wine's registry file (system.reg), where each
+# service is a [System\\ControlSet001\\Services\\<name>] section with backslashes doubled.
+wanted() {
+	command -v wine > /dev/null 2>&1 && command -v wineserver > /dev/null 2>&1 \
+		&& [ -f "${prefix}/system.reg" ] || return 1
+	awk '
+		function check() {
+			if (service && automatic && image != "" && index(image, "c:\\\\windows\\\\") != 1 \
+				&& index(image, "%systemroot%") != 1 && index(image, "\\\\systemroot") != 1)
+				found = 1
+		}
+		/^\[/ {
+			check()
+			key = tolower($0)
+			services = "[system\\\\controlset001\\\\services\\\\"
+			name = substr(key, length(services) + 1)
+			name = substr(name, 1, index(name, "]") - 1)
+			service = (index(key, services) == 1 && name != "" && index(name, "\\") == 0)
+			automatic = 0; image = ""
+			next
+		}
+		service && $0 == "\"Start\"=dword:00000002" { automatic = 1 }
+		# The program path, without the quotes and the \\?\ some installers put around it.
+		service && /^"ImagePath"=/ {
+			image = tolower($0)
+			sub(/^"imagepath"=(str\([0-9]\):)?"/, "", image)
+			sub(/^\\"/, "", image)
+			sub(/^\\\\\\\\\?\\\\\\\\/, "", image)
+		}
+		END { check(); exit !found }
+	' "${prefix}/system.reg"
+}
+
+case "$1" in
+	start)
+		wanted || exit 0
+		wineserver -p > /dev/null 2>&1
+		wine wineboot > /dev/null 2>&1 < /dev/null &
+		;;
+	stop)
+		command -v wineserver > /dev/null 2>&1 && wineserver -k > /dev/null 2>&1
+		exit 0
+		;;
+	*)
+		echo "usage: $0 start|stop" >&2
+		exit 2
+		;;
+esac

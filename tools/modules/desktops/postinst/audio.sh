@@ -48,12 +48,31 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivu
 #    hidden.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-keyboard" /usr/lib/pivuan/keyboard
 install -Dm 0644 "${desktops_dir}/branding/onboard/onboard-defaults.conf" /etc/onboard/onboard-defaults.conf
+#    The Wine menu (/usr/lib/pivuan/wine-menu, run by JWM each time the menu opens) lists the
+#    Windows programs installed in Wine. Desktop icons: /usr/lib/pivuan/desktop-icons runs
+#    pcmanfm's desktop (on or off in Desktop Settings).
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-menu" /usr/lib/pivuan/wine-menu
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-icons" /usr/lib/pivuan/desktop-icons
+#    /usr/lib/pivuan/wine-session (started and ended by JWM) runs Wine for the whole session when
+#    a Windows program installed a service that starts with Windows, such as iLok's.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-session" /usr/lib/pivuan/wine-session
+#    XDG_CURRENT_DESKTOP: Wine makes menu entries and desktop shortcuts for the programs it
+#    installs only when it is set. A ~/.xinitrc that is still the one Pivuan Audio wrote before
+#    (without it) is replaced; one the user changed is left alone.
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
 [ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session
+export XDG_CURRENT_DESKTOP=JWM
 exec dbus-run-session jwm
 EOF
 chmod 0755 /etc/skel/.xinitrc
+old_xinitrc="$(printf '%s\n' '#!/bin/sh' \
+	'[ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session' \
+	'exec dbus-run-session jwm')"
+for xinitrc in /home/*/.xinitrc; do
+	[ -f "${xinitrc}" ] && [ "$(cat "${xinitrc}")" = "${old_xinitrc}" ] \
+		&& cat /etc/skel/.xinitrc > "${xinitrc}"
+done
 
 #    GTK programs (pcmanfm, Volume Control, file dialogs) use the Pivuan icons
 #    (pivuan-icon-theme, Haiku's icons, with Numix for the ones it lacks). The theme

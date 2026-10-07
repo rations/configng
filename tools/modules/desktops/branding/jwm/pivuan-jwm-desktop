@@ -19,6 +19,9 @@
 #   keyboard=auto|yes|no        the on-screen keyboard (Onboard): a panel button that shows and
 #                               hides it, and Onboard started hidden at login. auto (default):
 #                               only when a touchscreen is attached (/usr/lib/pivuan/keyboard)
+#   desktop_icons=yes|no        icons on the desktop: the files in the Desktop folder, such as
+#                               the shortcuts Windows installers make (default yes); pcmanfm
+#                               draws them (/usr/lib/pivuan/desktop-icons)
 # Without the file, or with lines it does not understand, the defaults are used: the panel
 # always comes up.
 #
@@ -36,12 +39,14 @@ launchers=""
 panel_size=30
 panel_colour="#959597"
 keyboard=auto
+desktop_icons=yes
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
 		case "${line}" in
 			background=*) background="${line#background=}" ;;
 			autohide=yes) autohide=yes ;;
 			keyboard=auto | keyboard=yes | keyboard=no) keyboard="${line#keyboard=}" ;;
+			desktop_icons=yes | desktop_icons=no) desktop_icons="${line#desktop_icons=}" ;;
 			panel_size=*)
 				value="${line#panel_size=}"
 				case "${value}" in
@@ -175,6 +180,10 @@ EOF
 # Onboard starts hidden, so the first tap on the keyboard button shows it at once. JWM runs a
 # StartupCommand when it starts, not when it restarts.
 [ "${keyboard}" = yes ] && echo '    <StartupCommand>/usr/lib/pivuan/keyboard start</StartupCommand>'
+# The desktop icons (pcmanfm's desktop, over JWM's background, with the same picture). Desktop
+# Settings starts and stops them itself when they are turned on or off.
+[ "${desktop_icons}" = yes ] && [ -x /usr/lib/pivuan/desktop-icons ] \
+	&& echo '    <StartupCommand>/usr/lib/pivuan/desktop-icons start</StartupCommand>'
 echo '    <Desktops width="2" height="1">'
 echo "        <Background type=\"scale\">$(xml "${background}")</Background>"
 echo '    </Desktops>'

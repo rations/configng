@@ -9,11 +9,21 @@
 # so the bookmarks are the way to reach them). Files that exist are left alone: the user's
 # own changes stay.
 #
+# The Desktop folder holds the desktop's icons (/usr/lib/pivuan/desktop-icons), such as the
+# shortcuts Windows installers make. Before it, the desktop was the home folder
+# (XDG_DESKTOP_DIR="$HOME/"); that line becomes "$HOME/Desktop", and Wine's Desktop folder
+# (a link Wine makes once, when it creates its prefix) is pointed there too. A hidden file,
+# Desktop/.keep, keeps the folder from being deleted: when a Windows program is uninstalled,
+# Wine removes the folders of its files that are left empty, the Desktop too once its shortcut
+# is gone (on Windows the Desktop always holds a hidden desktop.ini). Later shortcuts would
+# then have nowhere to go.
+#
 [ -n "${HOME}" ] && [ -d "${HOME}" ] || exit 0
 
-for dir in Downloads Documents Music Videos NAM "Impulse Responses" .vst3 .lv2; do
+for dir in Desktop Downloads Documents Music Videos NAM "Impulse Responses" .vst3 .lv2; do
 	[ -d "${HOME}/${dir}" ] || mkdir -p "${HOME}/${dir}"
 done
+[ -e "${HOME}/Desktop/.keep" ] || : > "${HOME}/Desktop/.keep"
 
 config="${XDG_CONFIG_HOME:-${HOME}/.config}"
 mkdir -p "${config}/gtk-3.0"
@@ -21,7 +31,7 @@ mkdir -p "${config}/gtk-3.0"
 if [ ! -e "${config}/user-dirs.dirs" ]; then
 	cat > "${config}/user-dirs.dirs" << 'EOF'
 # The user's folders (xdg-user-dirs format). A folder set to "$HOME/" is not used.
-XDG_DESKTOP_DIR="$HOME/"
+XDG_DESKTOP_DIR="$HOME/Desktop"
 XDG_DOWNLOAD_DIR="$HOME/Downloads"
 XDG_TEMPLATES_DIR="$HOME/"
 XDG_PUBLICSHARE_DIR="$HOME/"
@@ -30,6 +40,14 @@ XDG_MUSIC_DIR="$HOME/Music"
 XDG_PICTURES_DIR="$HOME/"
 XDG_VIDEOS_DIR="$HOME/Videos"
 EOF
+elif grep -qFx 'XDG_DESKTOP_DIR="$HOME/"' "${config}/user-dirs.dirs"; then
+	sed -i 's|^XDG_DESKTOP_DIR="\$HOME/"$|XDG_DESKTOP_DIR="$HOME/Desktop"|' "${config}/user-dirs.dirs"
+fi
+wine_desktop="${WINEPREFIX:-${HOME}/.wine}/drive_c/users/$(id -un)/Desktop"
+if [ -L "${wine_desktop}" ]; then
+	case "$(readlink "${wine_desktop}")" in
+		"${HOME}" | "${HOME}/") ln -sfn "${HOME}/Desktop" "${wine_desktop}" ;;
+	esac
 fi
 
 # pcmanfm (GTK) bookmarks: file URIs, with the space in "Impulse Responses" escaped.

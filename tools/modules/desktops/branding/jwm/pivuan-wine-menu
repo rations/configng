@@ -1,0 +1,115 @@
+#!/bin/sh
+#
+# Pivuan Audio: the Wine menu, with the Windows programs installed in Wine. Installed as
+# /usr/lib/pivuan/wine-menu; /etc/jwm/pivuan.jwmrc shows what it prints as a dynamic menu
+# (<Dynamic>exec:/usr/lib/pivuan/wine-menu</Dynamic>), so JWM runs it each time the menu opens
+# and a program installed a moment ago is already there.
+#
+# When a Windows installer adds a Start Menu shortcut, Wine's winemenubuilder writes a .desktop
+# file for it in ~/.local/share/applications/wine/Programs/<the Start Menu folders>/ and its
+# icon in ~/.local/share/icons/hicolor/<size>/apps/ (only when XDG_CURRENT_DESKTOP is set:
+# ~/.xinitrc sets it), and removes them when the program is uninstalled. The Start Menu folders
+# become submenus, folders first, then programs, each by name. Below them: Wine Configuration
+# and Uninstall Windows Programs.
+#
+data="${XDG_DATA_HOME:-${HOME}/.local/share}"
+programs="${data}/applications/wine/Programs"
+icons="${data}/icons/hicolor"
+
+# Text for XML: & < > " escaped.
+xml() {
+	printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+}
+
+# A program's name, icon, command and working folder from its .desktop file, one per line;
+# fails for entries that are hidden. Exec values have the escapes of .desktop files (\\ \s \t
+# \n \r); without them, what is left is the quoting winemenubuilder writes
+# (wine "C:\\Program Files\\..."), which sh reads the same way. Field codes (%f, %u, ...) are
+# dropped and %% is a %.
+program_entry() {
+	awk '
+		function unescape(s,    out, i, c) {
+			out = ""
+			for (i = 1; i <= length(s); i++) {
+				c = substr(s, i, 1)
+				if (c == "\\" && i < length(s)) {
+					c = substr(s, ++i, 1)
+					if (c == "s") c = " "
+					else if (c == "t") c = "\t"
+					else if (c == "n") c = "\n"
+					else if (c == "r") c = "\r"
+					else if (c != "\\") c = "\\" c
+				}
+				out = out c
+			}
+			return out
+		}
+		/^\[/ { in_entry = ($0 == "[Desktop Entry]"); next }
+		!in_entry { next }
+		/^Name=/ && name == "" { name = substr($0, 6) }
+		/^Icon=/ && icon == "" { icon = substr($0, 6) }
+		/^Exec=/ && exec_line == "" { exec_line = unescape(substr($0, 6)) }
+		/^Path=/ && path == "" { path = substr($0, 6) }
+		/^(NoDisplay|Hidden)=true/ { hidden = 1 }
+		END {
+			if (exec_line == "" || hidden) exit 1
+			gsub(/%[fFuUdDnNickvm]/, "", exec_line)
+			gsub(/%%/, "%", exec_line)
+			sub(/[ \t]+$/, "", exec_line)
+			printf "%s\n%s\n%s\n%s\n", name, icon, exec_line, path
+		}' "$1"
+}
+
+# The picture for an icon name: winemenubuilder's PNGs are in hicolor sizes JWM's IconPath
+# does not cover, so the menu gets the file itself. Otherwise the Wine icon.
+icon_file() {
+	case "$1" in
+		/*) [ -f "$1" ] && echo "$1" && return ;;
+		?*)
+			for size in 48x48 64x64 32x32 128x128 256x256 24x24 16x16; do
+				[ -f "${icons}/${size}/apps/$1.png" ] && echo "${icons}/${size}/apps/$1.png" && return
+			done
+			;;
+	esac
+	echo wine
+}
+
+# True if a folder holds a program somewhere inside it.
+has_programs() {
+	[ -n "$(find "$1" -type f -name '*.desktop' 2> /dev/null | head -n 1)" ]
+}
+
+# The menu for a folder: its folders (submenus), then its programs.
+menu_folder() {
+	for folder in "$1"/*/; do
+		[ -d "${folder}" ] || continue
+		folder="${folder%/}"
+		has_programs "${folder}" || continue
+		echo "<Menu icon=\"folder\" label=\"$(xml "${folder##*/}")\">"
+		(menu_folder "${folder}")
+		echo '</Menu>'
+	done
+	for file in "$1"/*.desktop; do
+		[ -f "${file}" ] || continue
+		entry="$(program_entry "${file}")" || continue
+		name="$(printf '%s\n' "${entry}" | sed -n 1p)"
+		icon="$(printf '%s\n' "${entry}" | sed -n 2p)"
+		command="$(printf '%s\n' "${entry}" | sed -n 3p)"
+		path="$(printf '%s\n' "${entry}" | sed -n 4p)"
+		[ -n "${name}" ] || name="$(basename "${file}" .desktop)"
+		# The program's working folder, as Windows starts it in (single quotes for sh).
+		[ -n "${path}" ] && [ -d "${path}" ] \
+			&& command="cd '$(printf '%s' "${path}" | sed "s/'/'\\\\''/g")' && ${command}"
+		echo "<Program icon=\"$(xml "$(icon_file "${icon}")")\" label=\"$(xml "${name}")\">$(xml "${command}")</Program>"
+	done
+}
+
+echo '<?xml version="1.0"?>'
+echo '<JWM>'
+if [ -d "${programs}" ] && has_programs "${programs}"; then
+	menu_folder "${programs}"
+	echo '<Separator/>'
+fi
+echo '<Program icon="wine" label="Wine Configuration">winecfg</Program>'
+echo '<Program icon="wine" label="Uninstall Windows Programs">wine uninstaller</Program>'
+echo '</JWM>'

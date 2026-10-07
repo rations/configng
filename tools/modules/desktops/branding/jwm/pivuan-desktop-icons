@@ -1,0 +1,87 @@
+#!/bin/sh
+#
+# Pivuan Audio: icons on the desktop, drawn by pcmanfm's desktop. Installed as
+# /usr/lib/pivuan/desktop-icons by postinst/audio.sh.
+#
+#   desktop-icons start     start pcmanfm's desktop, if Desktop Settings has the icons on
+#                           (desktop_icons=yes, the default, in ~/.config/pivuan/desktop.conf);
+#                           JWM runs this at login (/usr/lib/pivuan/jwm-desktop)
+#   desktop-icons stop      remove pcmanfm's desktop
+#   desktop-icons restart   stop, then start: Desktop Settings runs this after Apply, so a new
+#                           background and the icons going on or off show at once
+#
+# The icons are the files in the Desktop folder (~/Desktop, XDG_DESKTOP_DIR), such as the
+# shortcuts Windows installers make there (Wine writes them as .desktop launchers). pcmanfm's
+# desktop window covers JWM's background, so it gets the same picture, from Desktop Settings.
+# show_wm_menu: a right click on the desktop opens the Pivuan menu (JWM's), not pcmanfm's.
+# Only these settings, in the [*] group of pcmanfm's desktop-items-0.conf, are written; the
+# icons' places, kept in the same file, stay.
+#
+config="${XDG_CONFIG_HOME:-${HOME}/.config}"
+settings="${config}/pivuan/desktop.conf"
+pcmanfm_conf="${config}/pcmanfm/default/desktop-items-0.conf"
+default_background=/usr/share/backgrounds/pivuan/background-black.png
+
+# The value of a key in Desktop Settings' file (the last one wins, as in jwm-desktop).
+setting() {
+	[ -r "${settings}" ] && sed -n "s/^$1=//p" "${settings}" | tail -n 1
+}
+
+wanted() {
+	[ "$(setting desktop_icons)" != no ] && command -v pcmanfm > /dev/null 2>&1
+}
+
+# True if one of this user's pcmanfm is running.
+running() {
+	pgrep -u "$(id -u)" -x pcmanfm > /dev/null 2>&1
+}
+
+write_settings() {
+	background="$(setting background)"
+	[ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+	mkdir -p "${pcmanfm_conf%/*}"
+	[ -f "${pcmanfm_conf}" ] || : > "${pcmanfm_conf}"
+	awk -v background="${background}" '
+		function ours() {
+			print "wallpaper_mode=stretch"
+			print "wallpaper_common=1"
+			print "wallpaper=" background
+			print "desktop_bg=#000000"
+			print "desktop_fg=#ffffff"
+			print "desktop_shadow=#000000"
+			print "show_wm_menu=1"
+			print "show_documents=0"
+			print "show_trash=0"
+			print "show_mounts=0"
+			done = 1
+		}
+		/^\[/ { group = $0; print; if (group == "[*]") ours(); next }
+		group == "[*]" && /^(wallpaper_mode|wallpaper_common|wallpaper|desktop_bg|desktop_fg|desktop_shadow|show_wm_menu|show_documents|show_trash|show_mounts)=/ { next }
+		{ print }
+		END { if (!done) { print "[*]"; ours() } }
+	' "${pcmanfm_conf}" > "${pcmanfm_conf}.new" && mv "${pcmanfm_conf}.new" "${pcmanfm_conf}"
+}
+
+start() {
+	wanted || return 0
+	write_settings
+	pcmanfm --desktop > /dev/null 2>&1 &
+}
+
+stop() {
+	running && pcmanfm --desktop-off > /dev/null 2>&1
+	return 0
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	restart)
+		stop
+		start
+		;;
+	*)
+		echo "usage: $0 start|stop|restart" >&2
+		exit 2
+		;;
+esac

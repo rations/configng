@@ -19,6 +19,12 @@
     <StartupCommand>/usr/lib/pivuan/pulse-session</StartupCommand>
     <StartupCommand>nm-applet</StartupCommand>
     <StartupCommand>blueman-applet</StartupCommand>
+    <!-- Wine, when a Windows program installed a service that starts with Windows (such as
+         iLok's PACE License Services): started at login and kept running, so the service is
+         ready before a program or plugin needs it, and ended at logout
+         (/usr/lib/pivuan/wine-session). -->
+    <StartupCommand>/usr/lib/pivuan/wine-session start</StartupCommand>
+    <ShutdownCommand>/usr/lib/pivuan/wine-session stop</ShutdownCommand>
 
     <!-- The Pivuan menu: tray button, left or right click on the desktop, Alt+F1. -->
     <RootMenu onroot="13">
@@ -35,6 +41,10 @@
             <Program icon="audio-card" label="DRUMix">drumix-standalone</Program>
             <Program icon="wine" label="vstbridge">vstbridgectl-gtk</Program>
         </Menu>
+        <!-- Wine: the Windows programs installed in Wine, in their Start Menu folders, then
+             Wine Configuration and Uninstall Windows Programs. Made by /usr/lib/pivuan/wine-menu
+             each time the menu opens, so a program just installed is already there. -->
+        <Dynamic icon="wine" label="Wine" timeout="3000">exec:/usr/lib/pivuan/wine-menu</Dynamic>
         <Menu icon="applications-accessories" label="Accessories">
             <Program icon="org.xfce.mousepad" label="Text Editor">mousepad</Program>
             <Program icon="io.github.celluloid_player.Celluloid" label="Media Player">celluloid</Program>
@@ -42,8 +52,6 @@
         <Menu icon="preferences-system" label="System">
             <Program icon="/usr/share/pixmaps/pivuan/pivuan.png" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
             <Program icon="cpu-power" label="CPU Power">cpu-power</Program>
-            <Program icon="wine" label="Wine Configuration">winecfg</Program>
-            <Program icon="wine" label="Uninstall Windows Programs">wine uninstaller</Program>
             <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
             <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
             <Program icon="video-display" label="Display">lxrandr</Program>
