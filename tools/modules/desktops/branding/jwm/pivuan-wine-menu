@@ -1,9 +1,9 @@
 #!/bin/sh
 #
-# Pivuan Audio: the Wine menu, with the Windows programs installed in Wine. Installed as
-# /usr/lib/pivuan/wine-menu; /etc/jwm/pivuan.jwmrc shows what it prints as a dynamic menu
-# (<Dynamic>exec:/usr/lib/pivuan/wine-menu</Dynamic>), so JWM runs it each time the menu opens
-# and a program installed a moment ago is already there.
+# Pivuan Audio: the Wine menu, with the Windows programs installed in Wine, in jgmenu's CSV
+# format. Installed as /usr/lib/pivuan/wine-menu; /usr/lib/pivuan/menu-items puts what it prints
+# under the Pivuan menu's Wine item (^tag(pivuan-wine)) each time the menu opens, so a program
+# installed a moment ago is already there.
 #
 # When a Windows installer adds a Start Menu shortcut, Wine's winemenubuilder writes a .desktop
 # file for it in ~/.local/share/applications/wine/Programs/<the Start Menu folders>/ and its
@@ -16,16 +16,30 @@ data="${XDG_DATA_HOME:-${HOME}/.local/share}"
 programs="${data}/applications/wine/Programs"
 icons="${data}/icons/hicolor"
 
-# Text for XML: & < > " escaped.
-xml() {
-	printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+# A name for jgmenu, which reads it as Pango markup: & < > escaped.
+markup() {
+	printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+}
+
+# A CSV field: in triple quotes if it has a comma.
+field() {
+	case "$1" in
+		*,*) printf '"""%s"""' "$1" ;;
+		*) printf '%s' "$1" ;;
+	esac
+}
+
+# The submenu tag for a folder: a number from its path (folder names may have brackets and
+# commas, which a tag cannot).
+tag() {
+	echo "pivuan-wine-$(printf '%s' "$1" | cksum | cut -d ' ' -f 1)"
 }
 
 # A program's name, icon, command and working folder from its .desktop file, one per line;
 # fails for entries that are hidden. Exec values have the escapes of .desktop files (\\ \s \t
 # \n \r); without them, what is left is the quoting winemenubuilder writes
-# (wine "C:\\Program Files\\..."), which sh reads the same way. Field codes (%f, %u, ...) are
-# dropped and %% is a %.
+# (wine "C:\\Program Files\\..."), which sh reads the same way (jgmenu runs it with sh -c).
+# Field codes (%f, %u, ...) are dropped and %% is a %.
 program_entry() {
 	awk '
 		function unescape(s,    out, i, c) {
@@ -60,8 +74,8 @@ program_entry() {
 		}' "$1"
 }
 
-# The picture for an icon name: winemenubuilder's PNGs are in hicolor sizes JWM's IconPath
-# does not cover, so the menu gets the file itself. Otherwise the Wine icon.
+# The picture for an icon name: winemenubuilder's PNGs, in the first of the usual sizes it
+# made (jgmenu scales them). Otherwise the Wine icon.
 icon_file() {
 	case "$1" in
 		/*) [ -f "$1" ] && echo "$1" && return ;;
@@ -79,15 +93,13 @@ has_programs() {
 	[ -n "$(find "$1" -type f -name '*.desktop' 2> /dev/null | head -n 1)" ]
 }
 
-# The menu for a folder: its folders (submenus), then its programs.
-menu_folder() {
+# The items of a folder: its folders (submenus), then its programs.
+menu_items() {
 	for folder in "$1"/*/; do
 		[ -d "${folder}" ] || continue
 		folder="${folder%/}"
 		has_programs "${folder}" || continue
-		echo "<Menu icon=\"folder\" label=\"$(xml "${folder##*/}")\">"
-		(menu_folder "${folder}")
-		echo '</Menu>'
+		echo "$(field "$(markup "${folder##*/}")"),^checkout($(tag "${folder}")),folder"
 	done
 	for file in "$1"/*.desktop; do
 		[ -f "${file}" ] || continue
@@ -97,19 +109,30 @@ menu_folder() {
 		command="$(printf '%s\n' "${entry}" | sed -n 3p)"
 		path="$(printf '%s\n' "${entry}" | sed -n 4p)"
 		[ -n "${name}" ] || name="$(basename "${file}" .desktop)"
-		# The program's working folder, as Windows starts it in (single quotes for sh).
-		[ -n "${path}" ] && [ -d "${path}" ] \
-			&& command="cd '$(printf '%s' "${path}" | sed "s/'/'\\\\''/g")' && ${command}"
-		echo "<Program icon=\"$(xml "$(icon_file "${icon}")")\" label=\"$(xml "${name}")\">$(xml "${command}")</Program>"
+		# The program's working folder, as Windows starts it in (jgmenu changes to it).
+		[ -n "${path}" ] && [ -d "${path}" ] || path=""
+		echo "$(field "$(markup "${name}")"),$(field "${command}"),$(field "$(icon_file "${icon}")"),$(field "${path}")"
 	done
 }
 
-echo '<?xml version="1.0"?>'
-echo '<JWM>'
+# The submenus of a folder, and theirs, each as a ^tag() section.
+menu_sections() {
+	for folder in "$1"/*/; do
+		[ -d "${folder}" ] || continue
+		folder="${folder%/}"
+		has_programs "${folder}" || continue
+		echo
+		echo "^tag($(tag "${folder}"))"
+		menu_items "${folder}"
+		(menu_sections "${folder}")
+	done
+}
+
 if [ -d "${programs}" ] && has_programs "${programs}"; then
-	menu_folder "${programs}"
-	echo '<Separator/>'
+	menu_items "${programs}"
+	echo '^sep()'
 fi
-echo '<Program icon="wine" label="Wine Configuration">winecfg</Program>'
-echo '<Program icon="wine" label="Uninstall Windows Programs">wine uninstaller</Program>'
-echo '</JWM>'
+echo 'Wine Configuration,winecfg,wine'
+echo 'Uninstall Windows Programs,wine uninstaller,wine'
+[ -d "${programs}" ] && menu_sections "${programs}"
+exit 0

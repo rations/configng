@@ -1,0 +1,57 @@
+# Pivuan Audio: the look of the Pivuan menu (jgmenu). Installed as /etc/pivuan/jgmenurc by
+# pivuan-config and replaced when Pivuan Audio is installed again. /usr/lib/pivuan/menu adds
+# the menu's place (above the panel, or at the pointer) and then the user's own
+# ~/.config/jgmenu/jgmenurc, so a setting there wins over the same one here (see
+# "man jgmenu" for the settings).
+
+# The menu is made each time it opens (/usr/lib/pivuan/menu-items: the programs from their
+# .desktop files, by category), so programs just installed are in it.
+stay_alive = 0
+csv_cmd = /usr/lib/pivuan/menu-items
+csv_name_format = %n
+
+# Bottom left, just above the panel: JWM keeps the panel out of the screen's work area,
+# which jgmenu stays inside.
+position_mode = fixed
+menu_halign = left
+menu_valign = bottom
+menu_margin_x = 0
+menu_margin_y = 0
+
+# Programs that run in a terminal (Terminal=true)
+terminal_exec = lxterminal
+terminal_args = -e
+
+# Look: the greys of JWM's menus and windows, and the gold of the active window's title
+# (/etc/jwm/pivuan.jwmrc) for the border and the highlighted item. Text on gold is dark.
+font = DejaVu Sans 10
+icon_theme = Pivuan
+icon_size = 22
+icon_text_spacing = 8
+item_height = 28
+item_padding_x = 6
+item_margin_x = 3
+item_margin_y = 2
+item_radius = 0
+menu_radius = 0
+menu_border = 2
+menu_width = 180
+menu_padding_top = 4
+menu_padding_right = 2
+menu_padding_bottom = 4
+menu_padding_left = 2
+sub_spacing = 1
+sep_height = 7
+hover_delay = 100
+color_menu_bg = #333333 100
+color_menu_border = #B88B4C 100
+color_norm_bg = #333333 0
+color_norm_fg = #ECECEC 100
+color_sel_bg = #B88B4C 100
+color_sel_fg = #1E1E1E 100
+color_sel_border = #B88B4C 100
+color_sep_fg = #5A5A5A 100
+color_title_fg = #ECECEC 100
+color_title_bg = #333333 100
+color_title_border = #333333 100
+color_scroll_ind = #ECECEC 40

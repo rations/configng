@@ -13,7 +13,8 @@
 # The icons are the files in the Desktop folder (~/Desktop, XDG_DESKTOP_DIR), such as the
 # shortcuts Windows installers make there (Wine writes them as .desktop launchers). pcmanfm's
 # desktop window covers JWM's background, so it gets the same picture, from Desktop Settings.
-# show_wm_menu: a right click on the desktop opens the Pivuan menu (JWM's), not pcmanfm's.
+# show_wm_menu: a right click on an empty spot of the desktop goes on to JWM, which opens the
+# Pivuan menu (/etc/jwm/pivuan.jwmrc), not pcmanfm's; on an icon, it is pcmanfm's menu for it.
 # Only these settings, in the [*] group of pcmanfm's desktop-items-0.conf, are written; the
 # icons' places, kept in the same file, stay.
 #

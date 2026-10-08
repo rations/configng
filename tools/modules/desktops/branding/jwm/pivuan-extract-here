@@ -1,0 +1,110 @@
+#!/bin/sh
+#
+# Pivuan Audio: Extract Here, in pcmanfm's right-click menu for zip and tar archives (on the
+# desktop and in its windows). Installed as /usr/lib/pivuan/extract-here; pcmanfm runs it from
+# /usr/share/file-manager/actions/pivuan-extract-here.desktop with the chosen archives.
+#
+#   extract-here ARCHIVE...
+#
+# Each archive is unpacked next to itself: unzip for .zip, tar for .tar and compressed tars
+# (.tar.gz, .tar.xz, .tar.bz2, .tar.zst, ...; tar finds the compression itself). What is in it
+# goes into a hidden folder first, so nothing outside is touched (unzip and tar also drop
+# leading / and ../ from the names inside). Then:
+#   - an archive holding one folder or file gives that folder or file,
+#   - an archive holding several gives a folder named after the archive (song.zip: song).
+# Nothing is overwritten: a name already taken gets " (2)", " (3)", ...
+# If an archive cannot be unpacked, nothing is left behind and a window says why.
+#
+errors=""
+nl="
+"
+
+# A name in a folder that is not taken yet: name, "name (2)", "name (3)", ...
+free_name() {
+	candidate="$2"
+	number=2
+	while [ -e "$1/${candidate}" ] || [ -L "$1/${candidate}" ]; do
+		candidate="$2 (${number})"
+		number=$((number + 1))
+	done
+	printf '%s' "${candidate}"
+}
+
+# The entries of a folder (hidden ones too), one per line.
+entries() {
+	for entry in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+		[ -e "${entry}" ] || [ -L "${entry}" ] || continue
+		printf '%s\n' "${entry##*/}"
+	done
+}
+
+extract() {
+	archive="$1"
+	dir="$(dirname -- "${archive}")"
+	base="$(basename -- "${archive}")"
+	case "${base}" in
+		*.[Zz][Ii][Pp]) kind=zip stem="${base%.*}" ;;
+		*.tar) kind=tar stem="${base%.tar}" ;;
+		*.tar.*) kind=tar stem="${base%.tar.*}" ;;
+		*.tgz | *.tbz | *.tbz2 | *.txz | *.tzst | *.tlz) kind=tar stem="${base%.*}" ;;
+		*) kind=tar stem="${base%.*}" ;;
+	esac
+	[ -n "${stem}" ] || stem="${base}"
+
+	if [ ! -f "${archive}" ]; then
+		errors="${errors}${base}: not found${nl}"
+		return
+	fi
+	if ! tmp="$(mktemp -d "${dir}/.extracting-XXXXXX" 2> /dev/null)"; then
+		errors="${errors}${base}: this folder cannot be written to${nl}"
+		return
+	fi
+
+	if [ "${kind}" = zip ]; then
+		# Exit status 1 is a warning only (such as a name unzip had to change).
+		output="$(unzip -q -o "${archive}" -d "${tmp}" 2>&1 < /dev/null)"
+		status=$?
+		[ "${status}" -le 1 ] && status=0
+	else
+		output="$(tar -xf "${archive}" -C "${tmp}" --no-same-owner 2>&1 < /dev/null)"
+		status=$?
+	fi
+	if [ "${status}" -ne 0 ]; then
+		rm -rf -- "${tmp}"
+		errors="${errors}${base}: $(printf '%s' "${output}" | tail -n 3)${nl}"
+		return
+	fi
+
+	count="$(entries "${tmp}" | wc -l)"
+	if [ "${count}" -eq 0 ]; then
+		rmdir -- "${tmp}"
+		errors="${errors}${base}: the archive is empty${nl}"
+	elif [ "${count}" -eq 1 ]; then
+		only="$(entries "${tmp}")"
+		mv -- "${tmp}/${only}" "${dir}/$(free_name "${dir}" "${only}")" && rmdir -- "${tmp}"
+	else
+		chmod 0755 "${tmp}"
+		mv -- "${tmp}" "${dir}/$(free_name "${dir}" "${stem}")"
+	fi
+}
+
+for archive in "$@"; do
+	extract "${archive}"
+done
+
+if [ -n "${errors}" ]; then
+	message="${errors%"${nl}"}"
+	python3 - "${message}" << 'EOF' > /dev/null 2>&1 || printf '%s\n' "${message}" >&2
+import sys
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+dialog = Gtk.MessageDialog(message_type=Gtk.MessageType.ERROR, buttons=Gtk.ButtonsType.CLOSE,
+                           text="Extract Here could not unpack everything")
+dialog.format_secondary_text(sys.argv[1])
+dialog.set_title("Extract Here")
+dialog.run()
+EOF
+	exit 1
+fi
+exit 0

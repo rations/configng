@@ -2,7 +2,8 @@
 #
 # Pivuan Audio: the services of Windows programs, running for the whole session. Installed as
 # /usr/lib/pivuan/wine-session by postinst/audio.sh; /etc/jwm/pivuan.jwmrc runs "start" at
-# login and "stop" at logout.
+# login and "stop" at logout. Those two lines are commented out for now: plugins protected by
+# PACE (iLok) do not run on Arm yet. Turn them back on when they do.
 #
 #   wine-session start   if a Windows program installed a service that starts with Windows
 #                        (such as PACE License Services, which iLok and the plugins it

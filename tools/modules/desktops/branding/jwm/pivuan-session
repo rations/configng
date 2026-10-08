@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# Pivuan Audio: Log Out, Reboot and Shut Down from the Pivuan menu. Installed as
+# /usr/lib/pivuan/session; /usr/lib/pivuan/menu-items puts it in the menu.
+#
+#   session logout     end the session (JWM exits, and the login screen comes back)
+#   session reboot     restart the machine
+#   session poweroff   shut the machine down
+#
+# Each asks first, with a small menu in the middle of the screen in the Pivuan menu's look:
+# the action, or Cancel (Escape or a click elsewhere cancels too). elogind and Pivuan's polkit
+# rule let a local administrator restart and shut down.
+#
+case "$1" in
+	logout) label="Log Out" icon=system-log-out command="jwm -exit" ;;
+	reboot) label="Reboot" icon=system-reboot command="loginctl reboot" ;;
+	poweroff) label="Shut Down" icon=system-shutdown command="loginctl poweroff" ;;
+	*)
+		echo "usage: $0 logout|reboot|poweroff" >&2
+		exit 2
+		;;
+esac
+
+answer="$(printf '%s,yes,%s\nCancel,no,window-close\n' "${label}" "${icon}" \
+	| jgmenu --simple --center --no-spawn --config-file=/etc/pivuan/jgmenurc 2> /dev/null)"
+[ "${answer}" = yes ] || exit 0
+exec ${command}

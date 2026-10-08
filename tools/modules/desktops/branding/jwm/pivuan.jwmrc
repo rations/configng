@@ -19,55 +19,22 @@
     <StartupCommand>/usr/lib/pivuan/pulse-session</StartupCommand>
     <StartupCommand>nm-applet</StartupCommand>
     <StartupCommand>blueman-applet</StartupCommand>
-    <!-- Wine, when a Windows program installed a service that starts with Windows (such as
-         iLok's PACE License Services): started at login and kept running, so the service is
-         ready before a program or plugin needs it, and ended at logout
-         (/usr/lib/pivuan/wine-session). -->
+    <!-- Wine for the whole session, when a Windows program installed a service that starts
+         with Windows (such as iLok's PACE License Services): started at login and kept
+         running, so the service is ready before a program or plugin needs it, and ended at
+         logout (/usr/lib/pivuan/wine-session). Off for now: plugins protected by PACE do not
+         run on Arm yet. The script stays installed; remove the comment marks around these two
+         lines to turn it back on once PACE supports Arm.
     <StartupCommand>/usr/lib/pivuan/wine-session start</StartupCommand>
     <ShutdownCommand>/usr/lib/pivuan/wine-session stop</ShutdownCommand>
+    -->
 
-    <!-- The Pivuan menu: tray button, left or right click on the desktop, Alt+F1. -->
-    <RootMenu onroot="13">
-        <Program icon="lxterminal" label="Terminal">lxterminal</Program>
-        <Program icon="user-home" label="Files">pcmanfm</Program>
-        <Program icon="brave-origin" label="Web Browser">brave-origin-stable</Program>
-        <Separator/>
-        <Menu icon="audio-card" label="Audio">
-            <Program icon="audio-speakers" label="Volume Control">pavucontrol</Program>
-            <Program icon="audio-card" label="Jack Graph">jack-graph</Program>
-            <Program icon="jackdaw" label="JackDAW">jackdaw</Program>
-            <Program icon="namp-rack" label="NAMp Rack">namp-rack</Program>
-            <Program icon="audio-card" label="NAMix">namix-standalone</Program>
-            <Program icon="audio-card" label="DRUMix">drumix-standalone</Program>
-            <Program icon="wine" label="vstbridge">vstbridgectl-gtk</Program>
-        </Menu>
-        <!-- Wine: the Windows programs installed in Wine, in their Start Menu folders, then
-             Wine Configuration and Uninstall Windows Programs. Made by /usr/lib/pivuan/wine-menu
-             each time the menu opens, so a program just installed is already there. -->
-        <Dynamic icon="wine" label="Wine" timeout="3000">exec:/usr/lib/pivuan/wine-menu</Dynamic>
-        <Menu icon="applications-accessories" label="Accessories">
-            <Program icon="org.xfce.mousepad" label="Text Editor">mousepad</Program>
-            <Program icon="io.github.celluloid_player.Celluloid" label="Media Player">celluloid</Program>
-        </Menu>
-        <Menu icon="preferences-system" label="System">
-            <Program icon="/usr/share/pixmaps/pivuan/pivuan.png" label="Pivuan Config">lxterminal -e sudo pivuan-config</Program>
-            <Program icon="cpu-power" label="CPU Power">cpu-power</Program>
-            <Program icon="network-wired" label="Network Connections">nm-connection-editor</Program>
-            <Program icon="blueman" label="Bluetooth">blueman-manager</Program>
-            <Program icon="video-display" label="Display">lxrandr</Program>
-            <Program icon="input-keyboard" label="On-screen Keyboard">/usr/lib/pivuan/keyboard toggle</Program>
-            <Program icon="preferences-desktop-personal" label="Desktop Settings">pivuan-desktop-settings</Program>
-            <Program icon="preferences-desktop-theme" label="Appearance">lxappearance</Program>
-        </Menu>
-        <Separator/>
-        <Restart icon="view-refresh" label="Restart JWM"/>
-        <Exit icon="system-log-out" label="Log Out" confirm="true"/>
-        <!-- JWM exits first, then runs the command; elogind and Pivuan's polkit
-             rule let a local administrator restart and shut down. -->
-        <Exit icon="system-reboot" label="Reboot" confirm="true">loginctl reboot</Exit>
-        <Exit icon="system-shutdown" label="Shut Down" confirm="true">loginctl poweroff</Exit>
-    </RootMenu>
-
+    <!-- The Pivuan menu is jgmenu, opened by /usr/lib/pivuan/menu: from the tray's Pivuan
+         button (/usr/lib/pivuan/jwm-desktop), Alt+F1, and a right click on the desktop (see
+         Keys and Mouse below). It is made each time it opens (/usr/lib/pivuan/menu-items):
+         Terminal, Home and Web Browser, the programs by category from their .desktop files
+         (/etc/xdg/menus/pivuan-applications.menu), the Windows programs in Wine, and Restart
+         JWM, Log Out, Reboot and Shut Down. Its look is in /etc/pivuan/jgmenurc. -->
     <Group>
         <Option>tiled</Option>
     </Group>
@@ -168,14 +135,16 @@
     <Key mask="A" key="Tab">nextstacked</Key>
     <Key mask="A" key="F4">close</Key>
     <Key mask="A" key="#">desktop#</Key>
-    <Key mask="A" key="F1">root:1</Key>
+    <Key mask="A" key="F1">exec:/usr/lib/pivuan/menu panel</Key>
     <Key mask="A" key="F2">window</Key>
     <Key mask="A" key="F10">maximize</Key>
     <Key mask="A" key="Right">rdesktop</Key>
     <Key mask="A" key="Left">ldesktop</Key>
     <Key mask="CA" key="t">exec:lxterminal</Key>
 
-    <!-- Mouse -->
+    <!-- Mouse. A right click on the desktop opens the Pivuan menu at the pointer (with icons
+         on the desktop, pcmanfm passes a right click on an empty spot on to JWM). -->
+    <Mouse context="root" button="3">exec:/usr/lib/pivuan/menu pointer</Mouse>
     <Mouse context="root" button="4">ldesktop</Mouse>
     <Mouse context="root" button="5">rdesktop</Mouse>
 

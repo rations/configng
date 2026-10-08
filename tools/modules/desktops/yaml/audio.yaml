@@ -37,11 +37,16 @@ tiers:
       # Desktop programs
       - lxterminal
       - pcmanfm
+      - libfm-modules            # pcmanfm's right-click actions (Extract Here), trash and search
       - mousepad
       - celluloid
       - lxpolkit                 # polkit password dialog (started from ~/.jwmrc)
       - lxrandr
       - lxappearance
+      - jgmenu                   # the Pivuan menu: programs by category, made each time it opens
+      - unzip                    # Extract Here in pcmanfm, for .zip
+      - bzip2                    # ... and for .tar.bz2 (tar uses xz and gzip from the image)
+      - zstd                     # ... and for .tar.zst
       - onboard                  # on-screen keyboard for touchscreens (the panel button)
       - pivuan-desktop-settings  # Desktop Settings: background, panel and its icons (Pivuan apt repository)
       - xdg-utils

@@ -48,13 +48,32 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivu
 #    hidden.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-keyboard" /usr/lib/pivuan/keyboard
 install -Dm 0644 "${desktops_dir}/branding/onboard/onboard-defaults.conf" /etc/onboard/onboard-defaults.conf
-#    The Wine menu (/usr/lib/pivuan/wine-menu, run by JWM each time the menu opens) lists the
-#    Windows programs installed in Wine. Desktop icons: /usr/lib/pivuan/desktop-icons runs
-#    pcmanfm's desktop (on or off in Desktop Settings).
+#    The Pivuan menu is jgmenu: /usr/lib/pivuan/menu opens it (the panel button, Alt+F1, a right
+#    click on the desktop) with its look from /etc/pivuan/jgmenurc, and /usr/lib/pivuan/menu-items
+#    makes it each time it opens: the programs by category from their .desktop files
+#    (/etc/xdg/menus/pivuan-applications.menu and its categories' .directory files), the Windows
+#    programs installed in Wine (/usr/lib/pivuan/wine-menu), and Log Out, Reboot and Shut Down,
+#    which ask first (/usr/lib/pivuan/session). The on-screen keyboard has its own menu entry.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-menu" /usr/lib/pivuan/menu
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-menu-items" /usr/lib/pivuan/menu-items
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-session" /usr/lib/pivuan/session
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-menu" /usr/lib/pivuan/wine-menu
+install -Dm 0644 "${desktops_dir}/branding/jgmenu/pivuan-jgmenurc" /etc/pivuan/jgmenurc
+install -Dm 0644 "${desktops_dir}/branding/jgmenu/pivuan-applications.menu" /etc/xdg/menus/pivuan-applications.menu
+for directory in "${desktops_dir}"/branding/jgmenu/pivuan-*.directory; do
+	install -Dm 0644 "${directory}" "/usr/share/desktop-directories/${directory##*/}"
+done
+install -Dm 0644 "${desktops_dir}/branding/jwm/pivuan-keyboard.desktop" /usr/share/applications/pivuan-keyboard.desktop
+#    Desktop icons: /usr/lib/pivuan/desktop-icons runs pcmanfm's desktop (on or off in Desktop
+#    Settings). Extract Here in pcmanfm's right-click menu for zip and tar archives (a libfm
+#    file-manager action) runs /usr/lib/pivuan/extract-here.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-icons" /usr/lib/pivuan/desktop-icons
-#    /usr/lib/pivuan/wine-session (started and ended by JWM) runs Wine for the whole session when
-#    a Windows program installed a service that starts with Windows, such as iLok's.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-extract-here" /usr/lib/pivuan/extract-here
+install -Dm 0644 "${desktops_dir}/branding/pcmanfm/pivuan-extract-here.desktop" \
+	/usr/share/file-manager/actions/pivuan-extract-here.desktop
+#    /usr/lib/pivuan/wine-session runs Wine for the whole session when a Windows program installed
+#    a service that starts with Windows, such as iLok's. Installed but off: its lines in
+#    pivuan.jwmrc are commented out until plugins protected by PACE run on Arm.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-session" /usr/lib/pivuan/wine-session
 #    XDG_CURRENT_DESKTOP: Wine makes menu entries and desktop shortcuts for the programs it
 #    installs only when it is set. A ~/.xinitrc that is still the one Pivuan Audio wrote before

@@ -1,0 +1,175 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+ "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+<!--
+    Pivuan Audio: the program categories of the Pivuan menu (jgmenu). Installed as
+    /etc/xdg/menus/pivuan-applications.menu by pivuan-config; /usr/lib/pivuan/menu reads it
+    (XDG_MENU_PREFIX=pivuan-) each time the menu opens, so a program just installed is already
+    in it. Programs go into a category by the Categories= line of their .desktop file
+    (freedesktop menu specification); categories with no programs are left out.
+
+    No <DefaultMergeDirs/>: Wine writes its own menu files there for the Windows programs it
+    installs, and those are in the menu's Wine submenu (/usr/lib/pivuan/wine-menu) instead.
+-->
+<Menu>
+    <Name>Applications</Name>
+    <DefaultAppDirs/>
+    <DefaultDirectoryDirs/>
+
+    <Layout>
+        <Menuname>Accessories</Menuname>
+        <Menuname>Audio</Menuname>
+        <Menuname>Video</Menuname>
+        <Menuname>Development</Menuname>
+        <Menuname>Education</Menuname>
+        <Menuname>Games</Menuname>
+        <Menuname>Graphics</Menuname>
+        <Menuname>Internet</Menuname>
+        <Menuname>Office</Menuname>
+        <Menuname>Settings</Menuname>
+        <Menuname>System</Menuname>
+        <Merge type="menus"/>
+        <Merge type="files"/>
+    </Layout>
+
+    <!-- Left out below, as Pivuan has its own way to them: Onboard (Settings > On-screen
+         Keyboard, which also docks it), picom (the session runs it), pcmanfm's desktop
+         preferences (Desktop Settings writes them), Wine Configuration and Uninstall Windows
+         Programs (in the Wine submenu), jgmenu itself (it is this menu), and Pivuan Config
+         (run "sudo pivuan-config" in a terminal). -->
+    <Menu>
+        <Name>Accessories</Name>
+        <Directory>pivuan-accessories.directory</Directory>
+        <Include>
+            <And>
+                <Category>Utility</Category>
+                <Not><Category>System</Category></Not>
+                <Not><Category>Settings</Category></Not>
+            </And>
+        </Include>
+        <Exclude>
+            <Filename>onboard.desktop</Filename>
+            <Filename>picom.desktop</Filename>
+        </Exclude>
+    </Menu>
+
+    <!-- Audio: audio programs (Audio, or only AudioVideo), Volume Control among them (it is
+         also marked Settings), and audio and video editors such as REAPER. Video: video
+         programs, and players marked both Audio and Video (such as Celluloid). -->
+    <Menu>
+        <Name>Audio</Name>
+        <Directory>pivuan-audio.directory</Directory>
+        <Include>
+            <And>
+                <Or>
+                    <Category>Audio</Category>
+                    <Category>AudioVideo</Category>
+                </Or>
+                <Not>
+                    <And>
+                        <Category>Video</Category>
+                        <Or>
+                            <Category>Player</Category>
+                            <Not><Category>Audio</Category></Not>
+                        </Or>
+                    </And>
+                </Not>
+            </And>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Video</Name>
+        <Directory>pivuan-video.directory</Directory>
+        <Include>
+            <And>
+                <Category>Video</Category>
+                <Or>
+                    <Category>Player</Category>
+                    <Not><Category>Audio</Category></Not>
+                </Or>
+            </And>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Development</Name>
+        <Directory>pivuan-development.directory</Directory>
+        <Include>
+            <Category>Development</Category>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Education</Name>
+        <Directory>pivuan-education.directory</Directory>
+        <Include>
+            <Or>
+                <Category>Education</Category>
+                <Category>Science</Category>
+            </Or>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Games</Name>
+        <Directory>pivuan-games.directory</Directory>
+        <Include>
+            <Category>Game</Category>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Graphics</Name>
+        <Directory>pivuan-graphics.directory</Directory>
+        <Include>
+            <Category>Graphics</Category>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Internet</Name>
+        <Directory>pivuan-internet.directory</Directory>
+        <Include>
+            <Category>Network</Category>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Office</Name>
+        <Directory>pivuan-office.directory</Directory>
+        <Include>
+            <Category>Office</Category>
+        </Include>
+    </Menu>
+
+    <Menu>
+        <Name>Settings</Name>
+        <Directory>pivuan-settings.directory</Directory>
+        <Include>
+            <And>
+                <Category>Settings</Category>
+                <Not><Category>Audio</Category></Not>
+            </And>
+        </Include>
+        <Exclude>
+            <Filename>pcmanfm-desktop-pref.desktop</Filename>
+            <Filename>wine-winecfg.desktop</Filename>
+            <Filename>wine-uninstaller.desktop</Filename>
+            <Filename>configng.desktop</Filename>
+        </Exclude>
+    </Menu>
+
+    <Menu>
+        <Name>System</Name>
+        <Directory>pivuan-system.directory</Directory>
+        <Include>
+            <And>
+                <Category>System</Category>
+                <Not><Category>Settings</Category></Not>
+            </And>
+        </Include>
+        <Exclude>
+            <Filename>jgmenu.desktop</Filename>
+        </Exclude>
+    </Menu>
+</Menu>

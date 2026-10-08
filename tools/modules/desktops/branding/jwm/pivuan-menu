@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# Pivuan Audio: opens the Pivuan menu (jgmenu). Installed as /usr/lib/pivuan/menu; JWM runs it
+# from the panel's Pivuan button and Alt+F1 (/usr/lib/pivuan/jwm-desktop, /etc/jwm/pivuan.jwmrc)
+# and from a right click on the desktop.
+#
+#   menu [panel]    the menu at the bottom left, just above the panel
+#   menu pointer    the menu at the mouse pointer
+#
+# If the menu is already open, it closes instead. jgmenu gets /etc/pivuan/jgmenurc (the look),
+# then the menu's place, then the user's own ~/.config/jgmenu/jgmenurc, which wins. The panel's
+# height and whether it hides come from Desktop Settings (~/.config/pivuan/desktop.conf, read as
+# /usr/lib/pivuan/jwm-desktop reads them): JWM keeps a panel that is always there out of the
+# screen's work area, and jgmenu stays inside it, but a hidden panel is not left out, so the
+# menu then sits the panel's height above the bottom edge (where the panel comes up).
+#
+config="${XDG_CONFIG_HOME:-${HOME}/.config}"
+settings="${config}/pivuan/desktop.conf"
+runtime="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}}/pivuan"
+
+pgrep -u "$(id -u)" -x jgmenu > /dev/null 2>&1 && pkill -u "$(id -u)" -x jgmenu && exit 0
+
+autohide=no
+panel_size=30
+if [ -r "${settings}" ]; then
+	while IFS= read -r line || [ -n "${line}" ]; do
+		case "${line}" in
+			autohide=yes) autohide=yes ;;
+			autohide=no) autohide=no ;;
+			panel_size=*)
+				value="${line#panel_size=}"
+				case "${value}" in
+					"" | *[!0-9]*) ;;
+					*) [ "${value}" -ge 20 ] && [ "${value}" -le 96 ] && panel_size="${value}" ;;
+				esac
+				;;
+		esac
+	done < "${settings}"
+fi
+
+mkdir -p "${runtime}" || exit 1
+rc="${runtime}/jgmenurc"
+{
+	cat /etc/pivuan/jgmenurc
+	echo
+	echo '# Added by /usr/lib/pivuan/menu'
+	if [ "$1" = pointer ]; then
+		echo 'position_mode = pointer'
+	elif [ "${autohide}" = yes ]; then
+		echo "menu_margin_y = ${panel_size}"
+	fi
+	if [ -r "${config}/jgmenu/jgmenurc" ]; then
+		echo
+		echo "# ${config}/jgmenu/jgmenurc"
+		cat "${config}/jgmenu/jgmenurc"
+	fi
+} > "${rc}.new" && mv "${rc}.new" "${rc}"
+
+if [ "$1" = pointer ]; then
+	exec jgmenu --config-file="${rc}" --at-pointer
+fi
+exec jgmenu --config-file="${rc}"

@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Pivuan Audio: the items of the Pivuan menu, in jgmenu's CSV format. Installed as
+# /usr/lib/pivuan/menu-items; jgmenu runs it each time the menu opens (csv_cmd in
+# /etc/pivuan/jgmenurc), so programs just installed or removed are already in or out.
+#
+#   Terminal, Home, Web Browser
+#   the programs, by category: jgmenu's lx module reads them from their .desktop files with
+#     /etc/xdg/menus/pivuan-applications.menu (XDG_MENU_PREFIX=pivuan-)
+#   Wine: the Windows programs installed in Wine (/usr/lib/pivuan/wine-menu)
+#   Restart JWM, Log Out, Reboot, Shut Down (the last three ask first: /usr/lib/pivuan/session)
+#
+# lx prints the top menu first and then each category as a ^tag() section, so the items below
+# the categories go in before the first ^tag(). lx does not look at OnlyShowIn= and NotShowIn=,
+# so the programs meant only for other desktops (XDG_CURRENT_DESKTOP is JWM) are left out here,
+# by name.
+#
+# Program names as jgmenu's csv_name_format says (jgmenu sets this), else the name alone.
+export JGMENU_NAME_FORMAT="${JGMENU_NAME_FORMAT:-%n}"
+programs="$(XDG_MENU_PREFIX=pivuan- JGMENU_NO_PEND=1 jgmenu_run lx 2> /dev/null)"
+
+# The names (in every language) of the programs whose .desktop file is not for this desktop,
+# one per line.
+other_desktops() {
+	IFS=:
+	for dir in "${XDG_DATA_HOME:-${HOME}/.local/share}" ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}; do
+		for file in "${dir}"/applications/*.desktop; do
+			[ -f "${file}" ] && printf '%s\n' "${file}"
+		done
+	done | tr '\n' '\0' | xargs -0 -r awk -v desktops="${XDG_CURRENT_DESKTOP:-JWM}" '
+		function listed(list,    n, names, m, ours, i, j) {
+			n = split(list, names, ";")
+			m = split(desktops, ours, ":")
+			for (i = 1; i <= n; i++)
+				for (j = 1; j <= m; j++)
+					if (names[i] != "" && names[i] == ours[j]) return 1
+			return 0
+		}
+		function done_file() {
+			if (names != "" && ((only != "" && !listed(only)) || (not != "" && listed(not))))
+				printf "%s", names
+			names = only = not = ""
+			in_entry = 0
+		}
+		FNR == 1 { done_file() }
+		/^\[/ { in_entry = ($0 == "[Desktop Entry]"); next }
+		!in_entry { next }
+		# The name in every language: lx shows the one for the locale.
+		/^Name(\[[^]]*\])?=/ { names = names substr($0, index($0, "=") + 1) "\n" }
+		/^OnlyShowIn=/ { only = substr($0, 12) }
+		/^NotShowIn=/ { not = substr($0, 11) }
+		END { done_file() }'
+}
+hidden="$(other_desktops)"
+export hidden
+
+# lx's output without the programs for other desktops: the part before the first ^tag() (top),
+# or from it on (rest).
+programs_part() {
+	printf '%s\n' "${programs}" | awk -v part="$1" '
+		BEGIN { n = split(ENVIRON["hidden"], names, "\n"); for (i = 1; i <= n; i++) skip[names[i]] = 1 }
+		/^[^,]*,\^tag\(/ { tags = 1 }
+		(part == "top") == tags { next }
+		!NF { next }
+		{ name = $0; sub(/,.*/, "", name) }
+		(name in skip) && $0 !~ /^[^,]*,\^(tag|checkout|back)\(/ { next }
+		{ print }'
+}
+
+cat << 'EOF'
+Terminal,lxterminal,utilities-terminal
+Home,pcmanfm "$HOME",user-home
+Web Browser,brave-origin-stable,brave-origin
+^sep()
+EOF
+programs_part top
+command -v wine > /dev/null 2>&1 && echo 'Wine,^checkout(pivuan-wine),wine'
+cat << 'EOF'
+^sep()
+Restart JWM,jwm -restart,view-refresh
+Log Out,/usr/lib/pivuan/session logout,system-log-out
+Reboot,/usr/lib/pivuan/session reboot,system-reboot
+Shut Down,/usr/lib/pivuan/session poweroff,system-shutdown
+EOF
+programs_part rest
+if command -v wine > /dev/null 2>&1; then
+	echo
+	echo '^tag(pivuan-wine)'
+	/usr/lib/pivuan/wine-menu
+fi

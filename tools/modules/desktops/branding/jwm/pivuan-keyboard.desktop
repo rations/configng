@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Pivuan Audio: the on-screen keyboard (Onboard) in the menu's Settings: shows and hides it,
+# docked above the panel (/usr/lib/pivuan/keyboard). Installed by pivuan-config as
+# /usr/share/applications/pivuan-keyboard.desktop.
+Type=Application
+Name=On-screen Keyboard
+Comment=Show or hide the on-screen keyboard
+Exec=/usr/lib/pivuan/keyboard toggle
+Icon=input-keyboard
+Terminal=false
+Categories=Settings;Accessibility;
+TryExec=onboard

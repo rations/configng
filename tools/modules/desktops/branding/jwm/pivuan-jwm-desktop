@@ -157,7 +157,9 @@ echo '<?xml version="1.0"?>'
 echo '<JWM>'
 if [ "${autohide}" = yes ]; then hide=bottom; else hide=off; fi
 echo "    <Tray x=\"0\" y=\"-1\" height=\"${panel_size}\" autohide=\"${hide}\">"
-echo "        <TrayButton icon=\"${logo}\" popup=\"Pivuan menu\">root:1</TrayButton>"
+# The Pivuan menu (jgmenu, /usr/lib/pivuan/menu), above the panel; the menu reads the panel's
+# height and autohide from the same file.
+echo "        <TrayButton icon=\"${logo}\" popup=\"Pivuan menu\">exec:/usr/lib/pivuan/menu panel</TrayButton>"
 echo '        <Spacer width="4"/>'
 buttons=0
 for id in ${launchers}; do
