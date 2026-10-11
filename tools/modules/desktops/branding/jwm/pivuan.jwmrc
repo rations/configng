@@ -39,13 +39,6 @@
         <Option>tiled</Option>
     </Group>
 
-    <!-- Tray at the bottom (menu, program icons, desktops, windows, applets,
-         volume, clock) and the desktop background: printed by
-         /usr/lib/pivuan/jwm-desktop from the user's Desktop Settings
-         (~/.config/pivuan/desktop.conf). Volume: a click opens Volume Control,
-         the scroll wheel changes the volume of the current output. -->
-    <Include>exec:/usr/lib/pivuan/jwm-desktop</Include>
-
     <!-- Look: the greys of the Pivuan artwork, and the gold of NAMp-rations. Text on
          gold is dark: white on this gold is hard to read. The panel's colours are
          with the panel, in /usr/lib/pivuan/jwm-desktop (Desktop Settings). -->
@@ -82,6 +75,15 @@
         <Background>#ECECEC</Background>
     </PopupStyle>
 
+    <!-- Tray at the bottom (menu, program icons, desktops, windows, applets,
+         volume, clock) and the desktop background: printed by
+         /usr/lib/pivuan/jwm-desktop from the user's Desktop Settings
+         (~/.config/pivuan/desktop.conf). Volume: a click opens a volume slider,
+         the scroll wheel changes the volume of the current output. With a
+         touchscreen it also makes the window borders and title bars bigger, so
+         it comes after the Look above (in JWM, a later setting wins). -->
+    <Include>exec:/usr/lib/pivuan/jwm-desktop</Include>
+
     <!-- Icons: JWM looks only in these folders, in this order. The Pivuan theme
          first (pivuan-icon-theme, Haiku's icons), then Numix for the icons it
          lacks (its action icons stop at 32 pixels), then the programs' own icons. -->
@@ -115,8 +117,10 @@
     <IconPath>/usr/share/icons/Adwaita/symbolic/actions</IconPath>
     <IconPath>/usr/share/pixmaps</IconPath>
 
+    <!-- A double click may move 10 pixels between its clicks: a finger's double tap does,
+         and so does the tap that opens a JWM menu (a smaller move would close it again). -->
     <DoubleClickSpeed>400</DoubleClickSpeed>
-    <DoubleClickDelta>2</DoubleClickDelta>
+    <DoubleClickDelta>10</DoubleClickDelta>
     <FocusModel>click</FocusModel>
     <SnapMode distance="10">border</SnapMode>
     <MoveMode>opaque</MoveMode>

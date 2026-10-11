@@ -1,0 +1,4 @@
+# Pivuan Audio: the video group (Pivuan's first user is in it) may set the screen's backlight,
+# for Desktop Settings' brightness (/usr/lib/pivuan/brightness). Installed as
+# /etc/udev/rules.d/90-pivuan-backlight.rules by postinst/audio.sh.
+ACTION=="add", SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness", RUN+="/bin/chmod g+w /sys/class/backlight/%k/brightness"

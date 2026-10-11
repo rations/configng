@@ -11,7 +11,8 @@
 #   autohide=yes|no             hide the panel at the bottom edge until the mouse reaches it
 #   launcher=<name>.desktop     a program icon on the panel, in this order (from the
 #                               programs' .desktop files)
-#   panel_size=<pixels>         the panel's height, 20 to 96 (default 30)
+#   panel_size=<pixels>         the panel's height, 20 to 96 (default 30, or 48 with a
+#                               touchscreen)
 #   icon_size=<pixels>          the program icons' size, 12 up to the panel's height - 8
 #                               (default 22)
 #   panel_colour=#RRGGBB        the panel's colour (default #959597, the grey of the Pivuan logo);
@@ -24,8 +25,18 @@
 #                               draws them (/usr/lib/pivuan/desktop-icons)
 #   screen_off=yes|no           turn the screen off after 10 minutes without use (X's own
 #                               default). Default no: the screen stays on
+#   brightness=<percent>        the screen's brightness, 10 to 100, put back at each start by
+#                               /usr/lib/pivuan/brightness (which reads it itself). Not set by
+#                               default: the screen keeps its own
+#   brightness_button=yes|no    a panel button that opens the brightness slider (default yes)
+#   long_press=yes|no           with a touchscreen, a finger held still is a right click
+#                               (/usr/lib/pivuan/long-press, which reads it itself; default yes)
 # Without the file, or with lines it does not understand, the defaults are used: the panel
 # always comes up.
+#
+# With a touchscreen (/usr/lib/pivuan/keyboard touch), the window borders and title bars are
+# bigger, so a finger can take hold of them, and the panel's tooltips are off (after a tap
+# they would stay up).
 #
 # The icons: JWM draws a panel icon 8 pixels smaller than the panel, whatever its own size.
 # Desktop Settings makes each program's icon (and the speaker's) a square PNG of exactly that
@@ -38,11 +49,12 @@ default_background=/usr/share/backgrounds/pivuan/background-black.png
 background=""
 autohide=no
 launchers=""
-panel_size=30
+panel_size=""
 panel_colour="#959597"
 keyboard=auto
 desktop_icons=yes
 screen_off=no
+brightness_button=yes
 if [ -r "${config}" ]; then
 	while IFS= read -r line || [ -n "${line}" ]; do
 		case "${line}" in
@@ -51,6 +63,7 @@ if [ -r "${config}" ]; then
 			keyboard=auto | keyboard=yes | keyboard=no) keyboard="${line#keyboard=}" ;;
 			desktop_icons=yes | desktop_icons=no) desktop_icons="${line#desktop_icons=}" ;;
 			screen_off=yes) screen_off=yes ;;
+			brightness_button=no) brightness_button=no ;;
 			panel_size=*)
 				value="${line#panel_size=}"
 				case "${value}" in
@@ -70,6 +83,17 @@ if [ -r "${config}" ]; then
 	done < "${config}"
 fi
 [ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+
+# A touchscreen: bigger panel, borders and title bars.
+touch=no
+[ -x /usr/lib/pivuan/keyboard ] && /usr/lib/pivuan/keyboard touch && touch=yes
+if [ -z "${panel_size}" ]; then
+	if [ "${touch}" = yes ]; then panel_size=48; else panel_size=30; fi
+fi
+
+# The saved brightness, put back at each start (in the background: over HDMI it takes a
+# moment, and JWM waits for what this prints).
+[ -x /usr/lib/pivuan/brightness ] && /usr/lib/pivuan/brightness restore > /dev/null 2>&1 &
 
 # The screen's blanking and power saving, set here rather than printed: JWM runs this at each
 # start and restart, so at login and whenever Desktop Settings applies. X blanks the screen
@@ -93,6 +117,9 @@ if [ "${keyboard}" = auto ]; then
 	fi
 fi
 command -v onboard > /dev/null 2>&1 || keyboard=no
+# The brightness button opens Desktop Settings' brightness slider.
+[ -x /usr/lib/pivuan/brightness ] && command -v pivuan-desktop-settings > /dev/null 2>&1 \
+	|| brightness_button=no
 
 # The panel's text: dark on a light panel, light on a dark one (perceived brightness of
 # #RRGGBB); the pager's other desktops a little towards the text colour.
@@ -184,10 +211,22 @@ if [ "${keyboard}" = yes ]; then
 	[ -f "${icons}/input-keyboard.png" ] && kbd_icon="${icons}/input-keyboard.png"
 	echo "        <TrayButton icon=\"$(xml "${kbd_icon}")\" popup=\"On-screen keyboard\">exec:/usr/lib/pivuan/keyboard toggle</TrayButton>"
 fi
-echo "        <TrayButton icon=\"$(xml "${speaker}")\" popup=\"Volume Control (scroll to change the volume)\">"
+if [ "${brightness_button}" = yes ]; then
+	# Numix has the icon only among its notification icons, where JWM does not look.
+	bright_icon=display-brightness
+	[ -f /usr/share/icons/Numix/48/notifications/notification-display-brightness.svg ] \
+		&& bright_icon=/usr/share/icons/Numix/48/notifications/notification-display-brightness.svg
+	[ -f "${icons}/display-brightness.png" ] && bright_icon="${icons}/display-brightness.png"
+	echo "        <TrayButton icon=\"$(xml "${bright_icon}")\" popup=\"Brightness\">exec:pivuan-desktop-settings --brightness</TrayButton>"
+fi
+# Volume: a click (a tap) opens Desktop Settings' volume slider, with mute and Volume Control;
+# the other buttons open Volume Control itself; the wheel changes the volume.
+volume_click=pavucontrol
+command -v pivuan-desktop-settings > /dev/null 2>&1 && volume_click="pivuan-desktop-settings --volume"
+echo "        <TrayButton icon=\"$(xml "${speaker}")\" popup=\"Volume (scroll to change it)\">"
+echo "            <Button mask=\"1\">exec:${volume_click}</Button>"
 cat << 'EOF'
-
-            <Button mask="123">exec:pavucontrol</Button>
+            <Button mask="23">exec:pavucontrol</Button>
             <Button mask="4">exec:pactl set-sink-volume @DEFAULT_SINK@ +5%</Button>
             <Button mask="5">exec:pactl set-sink-volume @DEFAULT_SINK@ -5%</Button>
         </TrayButton>
@@ -198,6 +237,10 @@ EOF
 # Onboard starts hidden, so the first tap on the keyboard button shows it at once. JWM runs a
 # StartupCommand when it starts, not when it restarts.
 [ "${keyboard}" = yes ] && echo '    <StartupCommand>/usr/lib/pivuan/keyboard start</StartupCommand>'
+# Long press for right click on a touchscreen (the pivuan-long-press package, from the Pivuan apt
+# repository; it reads long_press= itself, and Desktop Settings restarts it when that changes).
+[ "${touch}" = yes ] && [ -x /usr/lib/pivuan/long-press ] \
+	&& echo '    <StartupCommand>/usr/lib/pivuan/long-press start</StartupCommand>'
 # The desktop icons (pcmanfm's desktop, over JWM's background, with the same picture). Desktop
 # Settings starts and stops them itself when they are turned on or off.
 [ "${desktop_icons}" = yes ] && [ -x /usr/lib/pivuan/desktop-icons ] \
@@ -232,4 +275,16 @@ cat << EOF
         </Active>
     </PagerStyle>
 EOF
+# Touchscreen: borders a finger can take hold of (with the title bar's height, the corners grow
+# too) and bigger title-bar buttons; no tooltips. pivuan.jwmrc includes this after its own
+# WindowStyle, so these win.
+if [ "${touch}" = yes ]; then
+	cat << 'EOF'
+    <WindowStyle>
+        <Width>8</Width>
+        <Height>34</Height>
+    </WindowStyle>
+    <PopupStyle enabled="false"/>
+EOF
+fi
 echo '</JWM>'

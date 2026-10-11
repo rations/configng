@@ -41,16 +41,17 @@ call() {
 		> /dev/null 2>&1
 }
 
-# A touchscreen is an input device with INPUT_PROP_DIRECT (bit 0) in its properties bitmap
-# (linux/input-event-codes.h), printed by the kernel in hex: a touchpad or a mouse does not
-# have it. The login screen (xlogin) uses the same test.
+# A touchscreen is an input device with INPUT_PROP_DIRECT in its properties bitmap, printed by
+# the kernel in hex: a touchpad or a mouse does not have it. INPUT_PROP_DIRECT is property 1
+# (linux/input-event-codes.h; property 0 is INPUT_PROP_POINTER), so its bit is 0x2: an ILITEK
+# HDMI touchscreen shows "2". The login screen (xlogin) uses the same test.
 touchscreen() {
 	for file in /sys/class/input/input*/properties; do
 		[ -r "${file}" ] || continue
 		read -r bits < "${file}" || continue
 		last="${bits##* }"
 		case "${last}" in "" | *[!0-9a-fA-F]*) continue ;; esac
-		[ $((0x${last} & 1)) -ne 0 ] && return 0
+		[ $((0x${last} & 2)) -ne 0 ] && return 0
 	done
 	return 1
 }

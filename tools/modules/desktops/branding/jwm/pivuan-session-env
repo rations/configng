@@ -1,0 +1,17 @@
+# Pivuan Audio: the session's environment, read by ~/.xinitrc (". /usr/lib/pivuan/session-env")
+# before JWM starts, so every program started in the session has it. Installed as
+# /usr/lib/pivuan/session-env by postinst/audio.sh.
+#
+# With a touchscreen (/usr/lib/pivuan/keyboard touch):
+#   GDK_CORE_DEVICE_EVENTS  GTK 3 programs take a tap as a mouse click. Without it they use
+#                           the touch events themselves, and their drop-down lists and drag
+#                           and drop (JackDAW's tracks and effects) close or stop as soon as
+#                           the finger lifts or wobbles. Finger scrolling in GTK 3 lists goes
+#                           with it: the scroll bars do it instead.
+#   GTK_OVERLAY_SCROLLING   GTK 3's scroll bars stay full size, not thin lines that grow only
+#                           when the mouse is over them, so a finger can drag them.
+# GTK 4 programs (Volume Control) handle touch well and ignore both.
+if [ -x /usr/lib/pivuan/keyboard ] && /usr/lib/pivuan/keyboard touch; then
+	export GDK_CORE_DEVICE_EVENTS=1
+	export GTK_OVERLAY_SCROLLING=0
+fi

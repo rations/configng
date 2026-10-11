@@ -48,6 +48,24 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-jwm-desktop" /usr/lib/pivu
 #    hidden.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-keyboard" /usr/lib/pivuan/keyboard
 install -Dm 0644 "${desktops_dir}/branding/onboard/onboard-defaults.conf" /etc/onboard/onboard-defaults.conf
+#    Onboard also comes up by itself when a text box is tapped in programs that tell the
+#    accessibility bus (at-spi2-core) where the text box is: the GTK and Qt ones. It needs GTK's
+#    accessibility on (the GNOME setting toolkit-accessibility), set here by default so Onboard
+#    does not ask; the schemas are compiled again for it (no dpkg trigger sees this file).
+install -Dm 0644 "${desktops_dir}/branding/onboard/90_pivuan-onboard.gschema.override" \
+	/usr/share/glib-2.0/schemas/90_pivuan-onboard.gschema.override
+for compile in /usr/lib/*/glib-2.0/glib-compile-schemas /usr/bin/glib-compile-schemas; do
+	[ -x "${compile}" ] && "${compile}" /usr/share/glib-2.0/schemas && break
+done
+#    The screen's brightness (Desktop Settings and the panel's brightness button): the
+#    backlight, which this udev rule lets the video group set, else the screen's own setting
+#    over HDMI (DDC/CI, ddcutil through /dev/i2c-*: i2c-dev loaded at boot), else dimming.
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-brightness" /usr/lib/pivuan/brightness
+install -Dm 0644 "${desktops_dir}/branding/udev/90-pivuan-backlight.rules" \
+	/etc/udev/rules.d/90-pivuan-backlight.rules
+install -d /etc/modules-load.d
+echo i2c-dev > /etc/modules-load.d/pivuan-i2c-dev.conf
+modprobe i2c-dev 2> /dev/null
 #    The Pivuan menu is jgmenu: /usr/lib/pivuan/menu opens it (the panel button, Alt+F1, a right
 #    click on the desktop) with its look from /etc/pivuan/jgmenurc, and /usr/lib/pivuan/menu-items
 #    makes it each time it opens: the programs by category from their .desktop files
@@ -76,29 +94,40 @@ install -Dm 0644 "${desktops_dir}/branding/pcmanfm/pivuan-extract-here.desktop" 
 #    pivuan.jwmrc are commented out until plugins protected by PACE run on Arm.
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-session" /usr/lib/pivuan/wine-session
 #    XDG_CURRENT_DESKTOP: Wine makes menu entries and desktop shortcuts for the programs it
-#    installs only when it is set. A ~/.xinitrc that is still the one Pivuan Audio wrote before
-#    (without it) is replaced; one the user changed is left alone.
+#    installs only when it is set. /usr/lib/pivuan/session-env: with a touchscreen, GTK 3
+#    programs take a tap as a click. A ~/.xinitrc that is still one Pivuan Audio wrote before is
+#    replaced; one the user changed is left alone.
+install -Dm 0644 "${desktops_dir}/branding/jwm/pivuan-session-env" /usr/lib/pivuan/session-env
 cat > /etc/skel/.xinitrc << 'EOF'
 #!/bin/sh
 [ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session
+[ -r /usr/lib/pivuan/session-env ] && . /usr/lib/pivuan/session-env
 export XDG_CURRENT_DESKTOP=JWM
 exec dbus-run-session jwm
 EOF
 chmod 0755 /etc/skel/.xinitrc
-old_xinitrc="$(printf '%s\n' '#!/bin/sh' \
+old_xinitrc_1="$(printf '%s\n' '#!/bin/sh' \
 	'[ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session' \
 	'exec dbus-run-session jwm')"
+old_xinitrc_2="$(printf '%s\n' '#!/bin/sh' \
+	'[ -x /usr/lib/pivuan/audio-session ] && /usr/lib/pivuan/audio-session' \
+	'export XDG_CURRENT_DESKTOP=JWM' 'exec dbus-run-session jwm')"
 for xinitrc in /home/*/.xinitrc; do
-	[ -f "${xinitrc}" ] && [ "$(cat "${xinitrc}")" = "${old_xinitrc}" ] \
-		&& cat /etc/skel/.xinitrc > "${xinitrc}"
+	[ -f "${xinitrc}" ] || continue
+	case "$(cat "${xinitrc}")" in
+		"${old_xinitrc_1}" | "${old_xinitrc_2}") cat /etc/skel/.xinitrc > "${xinitrc}" ;;
+	esac
 done
 
 #    GTK programs (pcmanfm, Volume Control, file dialogs) use the Pivuan icons
 #    (pivuan-icon-theme, Haiku's icons, with Numix for the ones it lacks). The theme
-#    stays GTK's own; lxappearance changes both.
+#    stays GTK's own; lxappearance changes both. A double click may move 16 pixels between
+#    its clicks, so a finger's double tap counts (/usr/lib/pivuan/audio-session adds it for
+#    users who already have the file).
 mkdir -p /etc/skel/.config/gtk-3.0 /etc/skel/.config/gtk-4.0
 for gtk in gtk-3.0 gtk-4.0; do
-	printf '[Settings]\ngtk-icon-theme-name=Pivuan\n' > "/etc/skel/.config/${gtk}/settings.ini"
+	printf '[Settings]\ngtk-icon-theme-name=Pivuan\ngtk-double-click-distance=16\n' \
+		> "/etc/skel/.config/${gtk}/settings.ini"
 done
 printf 'gtk-icon-theme-name="Pivuan"\n' > /etc/skel/.gtkrc-2.0
 

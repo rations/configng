@@ -1,0 +1,5 @@
+# Pivuan Audio: GTK's accessibility on, so Onboard (the on-screen keyboard) can come up by
+# itself when a text box is tapped, without first asking to turn it on. Installed in
+# /usr/share/glib-2.0/schemas by postinst/audio.sh.
+[org.gnome.desktop.interface]
+toolkit-accessibility=true

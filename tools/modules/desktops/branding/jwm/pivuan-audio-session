@@ -50,6 +50,18 @@ if [ -L "${wine_desktop}" ]; then
 	esac
 fi
 
+# A double click may move 16 pixels between its clicks in GTK programs, so a finger's double
+# tap counts (GTK's own 5 is less than a finger moves). Added to the user's GTK 3 settings once,
+# when they do not set it themselves.
+settings="${config}/gtk-3.0/settings.ini"
+if ! grep -q '^gtk-double-click-distance' "${settings}" 2> /dev/null; then
+	if grep -q '^\[Settings\]' "${settings}" 2> /dev/null; then
+		sed -i '/^\[Settings\]/a gtk-double-click-distance=16' "${settings}"
+	else
+		printf '[Settings]\ngtk-double-click-distance=16\n' >> "${settings}"
+	fi
+fi
+
 # pcmanfm (GTK) bookmarks: file URIs, with the space in "Impulse Responses" escaped.
 if [ ! -e "${config}/gtk-3.0/bookmarks" ]; then
 	home_uri="file://$(printf '%s' "${HOME}" | sed 's/ /%20/g')"

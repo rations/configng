@@ -1,0 +1,135 @@
+#!/bin/sh
+#
+# Pivuan Audio: the screen's brightness, in percent. Installed as /usr/lib/pivuan/brightness by
+# postinst/audio.sh; Desktop Settings (pivuan-desktop-settings, its slider and the panel's
+# brightness button) sets it, and /usr/lib/pivuan/jwm-desktop puts the saved one back each time
+# JWM starts.
+#
+#   brightness get         print the brightness, 10 to 100
+#   brightness set <n>     set it to n percent (10 to 100)
+#   brightness restore     set the brightness saved in Desktop Settings (brightness= in
+#                          ~/.config/pivuan/desktop.conf), if there is one
+#   brightness method      print how it is set: backlight, ddc or software
+#
+# How, in this order:
+#   backlight  the screen's backlight (/sys/class/backlight: the Raspberry Pi touch displays
+#              and other DSI screens). Pivuan's udev rule (90-pivuan-backlight.rules) lets the
+#              video group write it.
+#   ddc        the screen's own brightness setting over its video cable (DDC/CI, VCP feature
+#              0x10), with ddcutil: many HDMI screens. The i2c group (Pivuan's first user is
+#              in it) can use /dev/i2c-*. Finding the screen takes a few seconds, so the
+#              answer is kept for the session in $XDG_RUNTIME_DIR.
+#   software   the picture dimmed by X (xrandr --brightness): any screen, but the backlight
+#              stays as bright, so it saves no power.
+# Below 10 percent a screen can look off, so 10 is the lowest.
+#
+config="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/desktop.conf"
+cache="${XDG_RUNTIME_DIR:-/tmp}/pivuan-brightness-$(id -u)"
+
+# The first backlight this user can write, or nothing.
+backlight() {
+	for dir in /sys/class/backlight/*; do
+		[ -w "${dir}/brightness" ] && [ -r "${dir}/max_brightness" ] && echo "${dir}" && return 0
+	done
+	return 1
+}
+
+# The I2C bus of a screen that answers DDC/CI brightness, found once per session ("none" when
+# there is none).
+ddc_bus() {
+	if [ ! -r "${cache}" ]; then
+		bus=none
+		if command -v ddcutil > /dev/null 2>&1; then
+			# "I2C bus:  /dev/i2c-13" for each screen ddcutil can talk to.
+			for dev in $(ddcutil detect --brief 2> /dev/null | sed -n 's|.*I2C bus:[[:space:]]*/dev/i2c-\([0-9]*\).*|\1|p'); do
+				if ddcutil --bus "${dev}" getvcp 10 --brief > /dev/null 2>&1; then
+					bus="${dev}"
+					break
+				fi
+			done
+		fi
+		echo "${bus}" > "${cache}" 2> /dev/null
+	fi
+	read -r bus < "${cache}" 2> /dev/null || bus=none
+	[ "${bus}" != none ] && [ -n "${bus}" ] && echo "${bus}"
+}
+
+method() {
+	if backlight > /dev/null; then
+		echo backlight
+	elif ddc_bus > /dev/null; then
+		echo ddc
+	elif command -v xrandr > /dev/null 2>&1 && [ -n "${DISPLAY}" ]; then
+		echo software
+	else
+		return 1
+	fi
+}
+
+# The connected outputs, for software dimming.
+outputs() {
+	xrandr 2> /dev/null | awk '$2 == "connected" { print $1 }'
+}
+
+get() {
+	case "$(method)" in
+		backlight)
+			dir="$(backlight)"
+			read -r now < "${dir}/brightness"
+			read -r max < "${dir}/max_brightness"
+			[ "${max}" -gt 0 ] && echo $(((now * 100 + max / 2) / max))
+			;;
+		ddc)
+			# "VCP 10 C 70 100": the value and its maximum.
+			set -- $(ddcutil --bus "$(ddc_bus)" getvcp 10 --brief 2> /dev/null)
+			[ "$1" = VCP ] && [ "${5:-0}" -gt 0 ] && echo $((($4 * 100 + $5 / 2) / $5))
+			;;
+		software)
+			xrandr --verbose 2> /dev/null | awk '/Brightness:/ { printf "%d\n", $2 * 100 + 0.5; exit }'
+			;;
+		*) return 1 ;;
+	esac
+}
+
+set_percent() {
+	percent="$1"
+	case "${percent}" in "" | *[!0-9]*) return 2 ;; esac
+	[ "${percent}" -lt 10 ] && percent=10
+	[ "${percent}" -gt 100 ] && percent=100
+	case "$(method)" in
+		backlight)
+			dir="$(backlight)"
+			read -r max < "${dir}/max_brightness"
+			echo $(((max * percent + 50) / 100)) > "${dir}/brightness"
+			;;
+		ddc)
+			bus="$(ddc_bus)"
+			set -- $(ddcutil --bus "${bus}" getvcp 10 --brief 2> /dev/null)
+			max="${5:-100}"
+			ddcutil --bus "${bus}" setvcp 10 $(((max * percent + 50) / 100)) > /dev/null 2>&1
+			;;
+		software)
+			value="$(printf '%d.%02d' $((percent / 100)) $((percent % 100)))"
+			for output in $(outputs); do
+				xrandr --output "${output}" --brightness "${value}" 2> /dev/null
+			done
+			;;
+		*) return 1 ;;
+	esac
+}
+
+case "$1" in
+	get) get ;;
+	set) set_percent "$2" ;;
+	restore)
+		[ -r "${config}" ] || exit 0
+		saved="$(sed -n 's/^brightness=\([0-9][0-9]*\)$/\1/p' "${config}" | tail -n 1)"
+		[ -n "${saved}" ] || exit 0
+		set_percent "${saved}"
+		;;
+	method) method ;;
+	*)
+		echo "usage: $0 get | set <10-100> | restore | method" >&2
+		exit 2
+		;;
+esac
