@@ -50,6 +50,7 @@ tiers:
       - onboard                  # on-screen keyboard for touchscreens (the panel button)
       - at-spi2-core             # ... which comes up by itself in a tapped GTK or Qt text box
       - ddcutil                  # the screen's brightness over HDMI (DDC/CI), Desktop Settings
+      - pivuan-long-press        # long press for right click on a touchscreen (Pivuan apt repository)
       - pivuan-desktop-settings  # Desktop Settings: background, panel and its icons (Pivuan apt repository)
       - xdg-utils
       - adwaita-icon-theme
@@ -85,6 +86,11 @@ tiers:
       - lvtuner
       - drumix
       - cpu-power
+      # TONE3000's amp and effects plug-in (VST3, LV2) and standalone, built by Pivuan
+      # from its source (Pivuan apt repository), and zenity for its file dialogs (JUCE
+      # programs open them with zenity; tone3000 only Recommends it)
+      - tone3000
+      - zenity
       # Windows plugins in the audio programs: vstbridge, which brings Wine with FEX
       # (wine-fex) for running Windows programs (Pivuan apt repository)
       - vstbridge
