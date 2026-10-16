@@ -22,12 +22,9 @@
     <!-- Wine for the whole session, when a Windows program installed a service that starts
          with Windows (such as iLok's PACE License Services): started at login and kept
          running, so the service is ready before a program or plugin needs it, and ended at
-         logout (/usr/lib/pivuan/wine-session). Off for now: plugins protected by PACE do not
-         run on Arm yet. The script stays installed; remove the comment marks around these two
-         lines to turn it back on once PACE supports Arm.
+         logout (/usr/lib/pivuan/wine-session). -->
     <StartupCommand>/usr/lib/pivuan/wine-session start</StartupCommand>
     <ShutdownCommand>/usr/lib/pivuan/wine-session stop</ShutdownCommand>
-    -->
 
     <!-- The Pivuan menu is jgmenu, opened by /usr/lib/pivuan/menu: from the tray's Pivuan
          button (/usr/lib/pivuan/jwm-desktop), Alt+F1, and a right click on the desktop (see
