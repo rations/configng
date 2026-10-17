@@ -8,7 +8,9 @@ name: "Maintenance: PR auto-label"
 
 run-name: 'Set labels - PR #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}")'
 
-on: pull_request_target
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
+on:
+  workflow_dispatch:
 
 # Grant required permissions globally
 permissions:

@@ -1,7 +1,7 @@
 name: "Maintenance: PR listen review"
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  pull_request_review:
-    types: [submitted]
+  workflow_dispatch:
 
 jobs:
   ping:

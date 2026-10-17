@@ -2,9 +2,8 @@
 # This action recreate action for building stable images
 #
 name: Watchdog (cronjob)
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 env:

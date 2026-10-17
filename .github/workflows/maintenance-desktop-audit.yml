@@ -12,11 +12,8 @@ name: "Maintenance: Desktop matrix audit"
 # OAuth token) and let it propose YAML edits. Then open a PR with
 # whatever Claude wrote, using peter-evans/create-pull-request.
 
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  schedule:
-    # Mondays at 06:00 UTC. Weekly is enough — release / package
-    # availability changes slowly.
-    - cron: "0 6 * * 1"
   workflow_dispatch:
     inputs:
       tier:

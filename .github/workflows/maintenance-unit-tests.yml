@@ -1,16 +1,7 @@
 name: "Maintenance: Unit tests"
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: ["Unit tests"]
-  schedule:
-    - cron: '0 2 * * *'
-  pull_request:
-    # `ready_for_review` is the draft → ready transition; without it,
-    # a PR opened as a draft and later marked ready would never trigger
-    # the suite. The job-level `if:` below filters out drafts so opens
-    # / synchronizes that arrive while still in draft are skipped.
-    types: [opened, reopened, edited, synchronize, review_requested, ready_for_review]
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

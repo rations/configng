@@ -1,8 +1,8 @@
 name: "Data: Validate JSON"
 
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  pull_request:
-    types: [opened, reopened, edited, synchronize, review_requested]
+  workflow_dispatch:
 
 concurrency:
   group: validate-json-${{github.event.pull_request.number}}

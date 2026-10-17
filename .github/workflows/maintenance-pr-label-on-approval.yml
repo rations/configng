@@ -1,8 +1,7 @@
 name: "Maintenance: PR label on approval"
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  workflow_run:
-    workflows: ["Maintenance: PR listen review"]
-    types: [completed]
+  workflow_dispatch:
 
 jobs:
   label:

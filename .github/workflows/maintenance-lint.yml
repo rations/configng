@@ -1,8 +1,8 @@
 name: "Maintenance: Lint"
 
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
   workflow_dispatch:
-  pull_request:
 
 concurrency:
   group: linter-${{github.event.pull_request.number}}

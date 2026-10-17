@@ -1,8 +1,8 @@
 name: "Maintenance: Community welcome issue"
 
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  issues:
-    types: opened
+  workflow_dispatch:
 
 jobs:
   welcome-first-time-contributor:

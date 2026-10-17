@@ -1,9 +1,7 @@
 name: "Maintenance: Build docs"
 
+# Pivuan: started by hand only (Actions minutes): no push, pull request or schedule triggers.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
