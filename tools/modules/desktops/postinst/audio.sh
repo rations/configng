@@ -89,10 +89,11 @@ install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-desktop-icons" /usr/lib/pi
 install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-extract-here" /usr/lib/pivuan/extract-here
 install -Dm 0644 "${desktops_dir}/branding/pcmanfm/pivuan-extract-here.desktop" \
 	/usr/share/file-manager/actions/pivuan-extract-here.desktop
-#    /usr/lib/pivuan/wine-session runs Wine for the whole session when a Windows program installed
-#    a service that starts with Windows, such as iLok's. Installed but off: its lines in
-#    pivuan.jwmrc are commented out until plugins protected by PACE run on Arm.
-install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-wine-session" /usr/lib/pivuan/wine-session
+#    Plugin Licenses (pivuan-plugin-licenses, in the Audio menu) starts the license services of
+#    Windows plugins, such as iLok's, only when they are wanted. It replaces
+#    /usr/lib/pivuan/wine-session, which kept Wine and those services (about 1 GB) running for
+#    the whole session.
+rm -f /usr/lib/pivuan/wine-session
 #    XDG_CURRENT_DESKTOP: Wine makes menu entries and desktop shortcuts for the programs it
 #    installs only when it is set. /usr/lib/pivuan/session-env: with a touchscreen, GTK 3
 #    programs take a tap as a click. A ~/.xinitrc that is still one Pivuan Audio wrote before is
