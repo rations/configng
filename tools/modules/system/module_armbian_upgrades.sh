@@ -71,13 +71,13 @@ function module_armbian_upgrades () {
 			fi
 			# toggle options
 			if target_sync=$(dialog_checklist "Select an Option" \
-				"\nConfigure unattended-upgrade options:" 16 73 8 --notags \
+				"\nConfigure unattended-upgrade options:" 16 78 8 --notags \
 				"Unattended-Upgrade" "Automatic security and package updates system." ${Unattended_Upgrade:-ON} \
 				"Update-Package-Lists" "Automatically updates the list of available packages." ${Update_Package_Lists:-OFF} \
 				"Download-Upgradeable-Packages" "Downloads upgradeable packages without installing them." ${Download_Upgradeable_Packages:-OFF} \
 				"AutoFixInterruptedDpkg" "Fixes interrupted package installations during upgrades." ${AutoFixInterruptedDpkg:-OFF} \
 				"Remove-New-Unused-Dependencies" "Removes dependencies no longer required after upgrades." ${Remove_New_Unused_Dependencies:-OFF} \
-				"Automatic-Reboot" "Reboots the system automatically if required after upgrades.    " ${Automatic_Reboot:-OFF} \
+				"Automatic-Reboot" "Reboots the system automatically if required after upgrades." ${Automatic_Reboot:-OFF} \
 				"Automatic-Reboot-WithUsers" "Reboots even if users are logged in." ${Automatic_Reboot_WithUsers:-OFF} \
 				"Remove-Unused-Dependencies" "Removes packages that are no longer required after upgrades." ${Remove_Unused_Dependencies:-OFF}); then
 				# set all to 0 or false
@@ -87,6 +87,14 @@ function module_armbian_upgrades () {
 					sed -i "s/\($choice \"\)0\(\";\)/\11\2/" /etc/apt/apt.conf.d/20auto-upgrades
 					sed -i "s/\($choice \"\)false\(\";\)/\1true\2/" /etc/apt/apt.conf.d/50unattended-upgrades
 				done
+				# APT::Periodic::Enable is the master switch. apt.systemd.daily exits
+				# when it is 0. Armbian ships 0 in 02-armbian-periodic. apt reads
+				# 20auto-upgrades later, so set it here. The reset above clears it.
+				if grep -Eq '^[[:space:]]*APT::Periodic::Enable[[:space:]]*"' /etc/apt/apt.conf.d/20auto-upgrades; then
+					sed -i '/^[[:space:]]*APT::Periodic::Enable[[:space:]]*"/s/"[^"]*"/"1"/' /etc/apt/apt.conf.d/20auto-upgrades
+				else
+					sed -i '1i APT::Periodic::Enable "1";' /etc/apt/apt.conf.d/20auto-upgrades
+				fi
 			fi
 			srv_restart unattended-upgrades
 		;;
@@ -101,6 +109,7 @@ function module_armbian_upgrades () {
 
 			# global options
 			cat > "/etc/apt/apt.conf.d/20auto-upgrades" <<- EOT
+			APT::Periodic::Enable "1";
 			APT::Periodic::Update-Package-Lists "1";
 			APT::Periodic::Download-Upgradeable-Packages "1";
 			APT::Periodic::AutocleanInterval "7";

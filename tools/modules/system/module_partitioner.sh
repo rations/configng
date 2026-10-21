@@ -97,6 +97,10 @@ partitioner_emmc_device() {
 # device, and the FULL list is passed as the last argument. Implementations
 # should accept both the "mtdblockN" and "mtdN:label" forms and pick the right
 # partition(s) to flash from the full list.
+# platform_install.sh may also set BOOTLOADER_NAME (default "u-boot") to name
+# the firmware it writes in the bootloader flash messages, and
+# BOOTLOADER_BOOTS_FROM to list the disk roles (nvme sata usb) its bootloader
+# loads /boot from, which enables the "standalone" mode for those targets.
 partitioner_mtd_list() {
 	local list chr
 	list="$(grep 'mtdblock' /proc/partitions 2>/dev/null | awk '{print $NF}' | xargs)"
@@ -153,6 +157,8 @@ partitioner_modes_for() {
 					# removable media) is bootable. Offer it FIRST (top / default).
 					m+=(spi)
 				fi
+				# u-boot on SD/eMMC loads /boot from this role: full install, media untouched.
+				[[ " ${BOOTLOADER_BOOTS_FROM:-} " == *" $role "* ]] && m+=(standalone)
 				m+=(sd)                       # keep boot on current media, root here
 				# ...or from an internal eMMC (if present and not the target).
 				local emmc; emmc="$(partitioner_emmc_device)"
@@ -195,6 +201,7 @@ partitioner_mode_desc() {
 		split-emmc) echo "Boot from eMMC, system on this disk (+ /emmc_storage)" ;;
 		mtd)  echo "Boot from SPI/MTD flash, system on this disk" ;;
 		spi)  echo "Boot from on-board SPI flash, full system on this disk" ;;
+		standalone) echo "Keep the current ${BOOTLOADER_NAME:-u-boot}, full system on this disk" ;;
 		ufs)  echo "Boot idblock on UFS boot LUN, system on UFS" ;;
 		*)    echo "$1" ;;
 	esac
@@ -315,6 +322,10 @@ partitioner_tui() {
 		if ! dialog_yesno " WARNING " "\nThis will ERASE /dev/$disk and install a self-contained Armbian ($fs): boot + system both on this disk.\n\nu-boot is NOT touched - the board boots from its on-board SPI flash and loads /boot from this disk. The install stays bootable on its own (no dependency on removable media).\n\nProceed?" "Erase and install" "Cancel" 13 74; then
 			return "$INSTALL_EX_OK"
 		fi
+	elif [[ "$boot" == standalone ]]; then
+		if ! dialog_yesno " WARNING " "\nThis will ERASE /dev/$disk and install a self-contained Armbian ($fs): boot + system both on this disk.\n\n${BOOTLOADER_NAME:-u-boot} and the current boot media are NOT touched - the bootloader loads /boot from this disk, and the current system stays bootable as a fallback.\n\nProceed?" "Erase and install" "Cancel" 13 74; then
+			return "$INSTALL_EX_OK"
+		fi
 	else
 		if ! dialog_yesno " WARNING " "\nThis will ERASE /dev/$disk and install Armbian ($boot, $fs).\n\nProceed?" "Erase and install" "Cancel" 10 70; then
 			return "$INSTALL_EX_OK"
@@ -337,7 +348,9 @@ partitioner_tui() {
 	} 2>>"$INSTALL_LOG" | dialog_gauge " $title " "\nInstalling to /dev/$disk - please wait..." 10 74
 	local rc; rc="$(cat "$rc_file")"; rm -f "$rc_file"
 
-	if [[ "$rc" == "0" ]]; then
+	if [[ "$rc" == "0" && "$boot" == standalone ]]; then
+		dialog_msgbox " $title " "\nInstallation to /dev/$disk finished successfully.\n\nKeep the current boot media in place: ${BOOTLOADER_NAME:-u-boot} stays there and loads the system from /dev/$disk. Reboot when ready."
+	elif [[ "$rc" == "0" ]]; then
 		dialog_msgbox " $title " "\nInstallation to /dev/$disk finished successfully.\n\nRemove the boot media (if applicable) and reboot."
 	else
 		dialog_msgbox " $title " "\nInstallation FAILED (code $rc).\n\nSee ${INSTALL_LOG:-the install log} for details."
@@ -378,10 +391,11 @@ partitioner_flash_uboot_tui() {
 	INSTALL_LOG="/var/log/armbian-install.log"
 	{ : >>"$INSTALL_LOG"; } 2>/dev/null || INSTALL_LOG=/dev/stderr
 
+	local bl="${BOOTLOADER_NAME:-u-boot}"
 	local mtd_list; mtd_list="$(partitioner_mtd_list)"
 	local -a menu=()
 	[[ "$(type -t write_uboot_platform_mtd)" == function && -n "$mtd_list" ]] \
-		&& menu+=("mtd" "SPI / on-board flash (u-boot)")
+		&& menu+=("mtd" "SPI / on-board flash ($bl)")
 	if [[ "$(type -t write_uboot_platform)" == function ]]; then
 		local name size note
 		while IFS=$'\t' read -r name size note; do
@@ -396,7 +410,7 @@ partitioner_flash_uboot_tui() {
 	fi
 
 	local sel
-	sel=$(dialog_menu " $title " "\nWrite the running system's u-boot (bootloader) to:" 0 78 10 -- "${menu[@]}")
+	sel=$(dialog_menu " $title " "\nWrite the running system's $bl (bootloader) to:" 0 78 10 -- "${menu[@]}")
 	[[ -z "$sel" ]] && return "$INSTALL_EX_OK"
 
 	local mode target warn
@@ -406,7 +420,7 @@ partitioner_flash_uboot_tui() {
 		mode="sd"; target="/dev/$sel"; warn="$target"
 	fi
 
-	if ! dialog_yesno " WARNING " "\nThis will OVERWRITE the bootloader (u-boot) on:\n\n  $warn\n\nwith u-boot from the running system. Your OS install and data are not touched.\n\nProceed?" "Flash bootloader" "Cancel" 13 74; then
+	if ! dialog_yesno " WARNING " "\nThis will OVERWRITE the bootloader ($bl) on:\n\n  $warn\n\nwith $bl from the running system. Your OS install and data are not touched.\n\nProceed?" "Flash bootloader" "Cancel" 13 74; then
 		return "$INSTALL_EX_OK"
 	fi
 
@@ -414,11 +428,11 @@ partitioner_flash_uboot_tui() {
 	{
 		install_write_bootloader "$mode" "$target" "/" "${DIR:-/usr/lib/u-boot}" "$mtd_list"
 		echo "$?" >"$rc_file"
-	} 2>>"$INSTALL_LOG" | dialog_gauge " $title " "\nWriting u-boot to $target - please wait..." 9 74
+	} 2>>"$INSTALL_LOG" | dialog_gauge " $title " "\nWriting $bl to $warn - please wait..." 9 74
 	local rc; rc="$(cat "$rc_file")"; rm -f "$rc_file"
 
 	if [[ "$rc" == "0" ]]; then
-		dialog_msgbox " $title " "\nBootloader (u-boot) written to $target successfully."
+		dialog_msgbox " $title " "\nBootloader ($bl) written to $warn successfully."
 	else
 		dialog_msgbox " $title " "\nFlashing FAILED (code $rc).\n\nSee ${INSTALL_LOG:-the install log} for details."
 	fi
@@ -440,7 +454,7 @@ partitioner_menu() {
 		menu+=("install" "Install Armbian to a disk (SD / eMMC / NVMe / SATA / USB)"); ((nact++))
 	fi
 	if [[ "$(type -t write_uboot_platform)" == function || "$(type -t write_uboot_platform_mtd)" == function ]]; then
-		menu+=("bootloader" "Flash / update the bootloader (u-boot) only"); ((nact++))
+		menu+=("bootloader" "Flash / update the bootloader (${BOOTLOADER_NAME:-u-boot}) only"); ((nact++))
 	fi
 
 	local act
@@ -477,13 +491,21 @@ partitioner_cli_install() {
 	done
 
 	[[ -b "$target" ]] || { echo "armbian-install: --target must be a block device" >&2; return "$INSTALL_EX_NODEV"; }
-	case "$boot" in uefi|uefi-dualboot|bios|emmc|sd|mtd|spi|ufs|native|split-emmc) ;; *) echo "armbian-install: --boot must be one of uefi|uefi-dualboot|bios|emmc|sd|mtd|spi|ufs|native|split-emmc" >&2; return "$INSTALL_EX_USAGE" ;; esac
+	case "$boot" in uefi|uefi-dualboot|bios|emmc|sd|mtd|spi|standalone|ufs|native|split-emmc) ;; *) echo "armbian-install: --boot must be one of uefi|uefi-dualboot|bios|emmc|sd|mtd|spi|standalone|ufs|native|split-emmc" >&2; return "$INSTALL_EX_USAGE" ;; esac
 	case "$fs"   in ext4|btrfs|f2fs) ;;     *) echo "armbian-install: --fs must be one of ext4|btrfs|f2fs" >&2; return "$INSTALL_EX_USAGE" ;; esac
 	[[ -f "$INSTALL_EXCLUDE" ]] || { echo "armbian-install: exclude list $INSTALL_EXCLUDE missing" >&2; return "$INSTALL_EX_TRANSFER"; }
 
 	if [[ "$assume_yes" -ne 1 ]]; then
 		echo "armbian-install: refusing to modify $target without --yes" >&2
 		return "$INSTALL_EX_USAGE"
+	fi
+	if [[ "$boot" == standalone ]]; then
+		# Same gate as the TUI: u-boot must load /boot from the target's role.
+		local role; role="$(install_detect_targets "$(partitioner_root_disk)" | awk -F'\t' -v d="${target#/dev/}" '$1 == d { print $2 }')"
+		if [[ -z "$role" || " ${BOOTLOADER_BOOTS_FROM:-} " != *" $role "* ]]; then
+			echo "armbian-install: --boot standalone needs a disk ${BOOTLOADER_NAME:-u-boot} boots from (BOOTLOADER_BOOTS_FROM='${BOOTLOADER_BOOTS_FROM:-}', $target is '${role:-not a target}')" >&2
+			return "$INSTALL_EX_USAGE"
+		fi
 	fi
 	if ! partitioner_ensure_fs_tool "$fs" 0; then
 		echo "armbian-install: mkfs.$fs unavailable; install its package and retry" >&2
@@ -538,12 +560,12 @@ partitioner_cli_flash() {
 	done
 	[[ -n "$target" ]] || { echo "armbian-install bootloader: --target <mtd|/dev/mmcblkN> required" >&2; return "$INSTALL_EX_USAGE"; }
 
-	local mtd_list mode dev
+	local bl="${BOOTLOADER_NAME:-u-boot}" mtd_list mode dev shown
 	mtd_list="$(partitioner_mtd_list)"
 	if [[ "$target" == "mtd" ]]; then
 		[[ "$(type -t write_uboot_platform_mtd)" == function && -n "$mtd_list" ]] \
 			|| { echo "armbian-install bootloader: no SPI/MTD u-boot target on this board" >&2; return "$INSTALL_EX_BOOTLOADER"; }
-		mode="mtd"; dev="/dev/${mtd_list%% *}"
+		mode="mtd"; dev="/dev/${mtd_list%% *}"; shown="the on-board SPI / MTD flash"
 	else
 		[[ "$(type -t write_uboot_platform)" == function ]] \
 			|| { echo "armbian-install bootloader: board has no write_uboot_platform hook" >&2; return "$INSTALL_EX_BOOTLOADER"; }
@@ -552,15 +574,15 @@ partitioner_cli_flash() {
 		[[ "$target" =~ ^/dev/mmcblk[0-9]+$ ]] \
 			|| { echo "armbian-install bootloader: '$target' is not an SD/eMMC whole device (expected /dev/mmcblkN or 'mtd')" >&2; return "$INSTALL_EX_USAGE"; }
 		[[ -b "$target" ]] || { echo "armbian-install bootloader: '$target' is not a block device" >&2; return "$INSTALL_EX_USAGE"; }
-		mode="sd"; dev="$target"
+		mode="sd"; dev="$target"; shown="$target"
 	fi
 
 	if [[ "$assume_yes" != 1 ]]; then
-		echo "armbian-install bootloader: refusing to write u-boot to $dev without --yes (overwrites the bootloader)." >&2
+		echo "armbian-install bootloader: refusing to write $bl to $shown without --yes (overwrites the bootloader)." >&2
 		return "$INSTALL_EX_USAGE"
 	fi
 
-	echo "Writing u-boot to $dev..."
+	echo "Writing $bl to $shown..."
 	install_write_bootloader "$mode" "$dev" "/" "${DIR:-/usr/lib/u-boot}" "$mtd_list"
 	local rc=$?
 	[[ "$rc" == 0 ]] && echo "Done." || echo "Failed (code $rc). See ${INSTALL_LOG:-install log}." >&2
@@ -607,12 +629,15 @@ partitioner_help() {
 
 	Non-interactive:
 	  armbian-install --target /dev/sdX --boot <mode> --fs <fs> --yes
-	    --boot   uefi | uefi-dualboot | bios | emmc | sd | mtd | ufs | native | split-emmc
+	    --boot   uefi | uefi-dualboot | bios | emmc | sd | mtd | spi | standalone | ufs | native | split-emmc
 	             native: full self-contained install on a board with no
 	                     u-boot/EFI/GRUB (e.g. Raspberry Pi) - target boots on
 	                     its own, no other media needed
 	             split-emmc: boot from eMMC, root on --target (NVMe/SATA/USB),
 	                         eMMC remainder mounted at /emmc_storage
+	             standalone: full self-contained install on --target, for boards
+	                         whose bootloader loads /boot from that disk
+	                         (BOOTLOADER_BOOTS_FROM) - current media untouched
 	    --fs     ext4 | btrfs | f2fs
 	    --size   GiB for Armbian (uefi-dualboot only; shrinks Windows)
 	    --yes    required to actually modify the target
