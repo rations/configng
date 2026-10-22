@@ -708,6 +708,23 @@ function _module_desktops_restore_inittab() {
 }
 
 #
+# Put back the files a desktop's postinst moved aside with dpkg-divert under the
+# package name "pivuan-<de>" (Pivuan Audio: Brave's launcher), removing its own
+# stand-ins, before the packages that own them go.
+# Usage: _module_desktops_undo_diversions <de>
+#
+function _module_desktops_undo_diversions() {
+	local file
+	command -v dpkg-divert > /dev/null || return 0
+	while read -r file; do
+		[[ -n "$file" ]] || continue
+		rm -f "$file"
+		dpkg-divert --package "pivuan-${1}" --remove --rename "$file" > /dev/null \
+			|| echo "Warning: could not put back ${file}" >&2
+	done < <(dpkg-divert --list | awk -v by="pivuan-${1}" '$1 == "diversion" && $NF == by { print $3 }')
+}
+
+#
 # Detect whether desktop $de is installed. Returns 0 if so, 1 otherwise.
 # Layered to avoid the dpkg-only check misfiring when DEs share
 # packages (e.g. Bianbu's bianbu-desktop-minimal-en depends on
@@ -1112,6 +1129,7 @@ function module_desktops() {
 			# on tty1) gets the original back before its packages go; afterwards
 			# init would keep respawning a program that no longer exists on tty1.
 			_module_desktops_restore_inittab "$de"
+			_module_desktops_undo_diversions "$de"
 
 			# Remove the exact set of packages that were newly installed by
 			# the install path. This list was captured at install time from

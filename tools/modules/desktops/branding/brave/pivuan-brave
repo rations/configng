@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Pivuan Audio: Brave's launcher, with its accessibility on while the on-screen keyboard is.
+# Installed by postinst/audio.sh in place of Brave's /usr/bin/brave-origin-stable, which
+# dpkg-divert moves to /usr/bin/brave-origin-stable.distrib (so Brave's updates go there and
+# this stays); every way Brave starts goes through it: its menu entries, the brave-origin and
+# x-www-browser alternatives, links opened from other programs.
+#
+# Onboard comes up by itself when a text box is tapped in a program that tells the
+# accessibility bus about it. Brave does that only with --force-renderer-accessibility: without
+# it, it says nothing however long the bus has been on (checked on a Pi 5 with Brave Origin
+# 1.97). It costs some memory and time per page, so it is added only when the keyboard is on:
+# keyboard= in Desktop Settings (~/.config/pivuan/desktop.conf), by default (auto) when a
+# touchscreen is attached, as /usr/lib/pivuan/jwm-desktop decides for the panel button.
+# The option counts only when Brave starts: a window opened while Brave runs keeps its setting.
+#
+real="$(readlink -f "$0").distrib"
+config="${XDG_CONFIG_HOME:-${HOME}/.config}/pivuan/desktop.conf"
+
+keyboard=auto
+if [ -r "${config}" ]; then
+	line="$(grep -E '^keyboard=(auto|yes|no)$' "${config}" | tail -n 1)"
+	[ -n "${line}" ] && keyboard="${line#keyboard=}"
+fi
+if [ "${keyboard}" = auto ]; then
+	keyboard=no
+	[ -x /usr/lib/pivuan/keyboard ] && /usr/lib/pivuan/keyboard touch && keyboard=yes
+fi
+
+if [ "${keyboard}" = yes ]; then
+	exec "${real}" --force-renderer-accessibility "$@"
+fi
+exec "${real}" "$@"

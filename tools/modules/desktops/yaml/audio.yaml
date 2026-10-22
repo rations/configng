@@ -49,6 +49,7 @@ tiers:
       - zstd                     # ... and for .tar.zst
       - onboard                  # on-screen keyboard for touchscreens (the panel button)
       - at-spi2-core             # ... which comes up by itself in a tapped GTK or Qt text box
+      - gir1.2-atspi-2.0         # ... Onboard only recommends it; without it, no auto-show
       - ddcutil                  # the screen's brightness over HDMI (DDC/CI), Desktop Settings
       - pivuan-long-press        # long press for right click on a touchscreen (Pivuan apt repository)
       - pivuan-desktop-settings  # Desktop Settings: background, panel and its icons (Pivuan apt repository)

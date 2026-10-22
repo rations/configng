@@ -6,8 +6,9 @@
 #   GDK_CORE_DEVICE_EVENTS  GTK 3 programs take a tap as a mouse click. Without it they use
 #                           the touch events themselves, and their drop-down lists and drag
 #                           and drop (JackDAW's tracks and effects) close or stop as soon as
-#                           the finger lifts or wobbles. Finger scrolling in GTK 3 lists goes
-#                           with it: the scroll bars do it instead.
+#                           the finger lifts or wobbles. One-finger scrolling in GTK 3 lists
+#                           goes with it; two fingers scroll instead (pivuan-long-press turns
+#                           them into the mouse wheel), as do the scroll bars.
 #   GTK_OVERLAY_SCROLLING   GTK 3's scroll bars stay full size, not thin lines that grow only
 #                           when the mouse is over them, so a finger can drag them.
 # GTK 4 programs (Volume Control) handle touch well and ignore both.

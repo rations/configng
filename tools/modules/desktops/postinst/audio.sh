@@ -57,6 +57,18 @@ install -Dm 0644 "${desktops_dir}/branding/onboard/90_pivuan-onboard.gschema.ove
 for compile in /usr/lib/*/glib-2.0/glib-compile-schemas /usr/bin/glib-compile-schemas; do
 	[ -x "${compile}" ] && "${compile}" /usr/share/glib-2.0/schemas && break
 done
+#    Brave tells the accessibility bus about a tapped text box only with
+#    --force-renderer-accessibility, so branding/brave/pivuan-brave adds it while the keyboard
+#    is on. It takes the place of Brave's launcher, which dpkg-divert moves aside to
+#    <launcher>.distrib (Brave's updates go there). Removing Pivuan Audio puts Brave's back
+#    (module_desktops, by the diversions of the package name "pivuan-audio").
+for launcher in /usr/bin/brave-origin-stable /usr/bin/brave-browser-stable; do
+	[ -e "${launcher}" ] || [ -e "${launcher}.distrib" ] || continue
+	dpkg-divert --package pivuan-audio --add --rename --divert "${launcher}.distrib" \
+		"${launcher}" > /dev/null \
+		&& [ -e "${launcher}.distrib" ] \
+		&& install -m 0755 "${desktops_dir}/branding/brave/pivuan-brave" "${launcher}"
+done
 #    The screen's brightness (Desktop Settings and the panel's brightness button): the
 #    backlight, which this udev rule lets the video group set, else the screen's own setting
 #    over HDMI (DDC/CI, ddcutil through /dev/i2c-*: i2c-dev loaded at boot), else dimming.
