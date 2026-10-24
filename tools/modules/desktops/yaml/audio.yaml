@@ -53,6 +53,7 @@ tiers:
       - ddcutil                  # the screen's brightness over HDMI (DDC/CI), Desktop Settings
       - pivuan-long-press        # long press for right click on a touchscreen (Pivuan apt repository)
       - pivuan-desktop-settings  # Desktop Settings: background, panel and its icons (Pivuan apt repository)
+      - pivuan-screenshot        # screenshots: the Print keys and Accessories > Screenshot (Pivuan apt repository)
       - xdg-utils
       - adwaita-icon-theme
       - pivuan-icon-theme        # the default icons (Haiku's), in the menu and pcmanfm (Pivuan apt repository)

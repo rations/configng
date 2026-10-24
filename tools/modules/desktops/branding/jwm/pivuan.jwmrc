@@ -136,6 +136,12 @@
     <Key mask="A" key="Right">rdesktop</Key>
     <Key mask="A" key="Left">ldesktop</Key>
     <Key mask="CA" key="t">exec:lxterminal</Key>
+    <!-- Screenshots into ~/Pictures: the screen, an area (drag), a window (click). The
+         pivuan-screenshot package (rations/pivuan, screenshot/), which is also Accessories >
+         Screenshot in the menu. Mask 4 is Mod4, the Super (Windows) key. -->
+    <Key key="Print">exec:pivuan-screenshot screen</Key>
+    <Key mask="A" key="Print">exec:pivuan-screenshot area</Key>
+    <Key mask="4" key="Print">exec:pivuan-screenshot window</Key>
 
     <!-- Mouse. A right click on the desktop opens the Pivuan menu at the pointer (with icons
          on the desktop, pcmanfm passes a right click on an empty spot on to JWM). -->
