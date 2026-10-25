@@ -245,6 +245,9 @@ EOF
 # Settings starts and stops them itself when they are turned on or off.
 [ "${desktop_icons}" = yes ] && [ -x /usr/lib/pivuan/desktop-icons ] \
 	&& echo '    <StartupCommand>/usr/lib/pivuan/desktop-icons start</StartupCommand>'
+# The desktop follows the monitors (Monitor Settings, a monitor plugged in or out): the desktop
+# icons start again at the new places, and touch stays on the touchscreen's own monitor.
+[ -x /usr/lib/pivuan/monitors ] && echo '    <StartupCommand>/usr/lib/pivuan/monitors start</StartupCommand>'
 echo '    <Desktops width="2" height="1">'
 echo "        <Background type=\"scale\">$(xml "${background}")</Background>"
 echo '    </Desktops>'

@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# Pivuan Audio: the desktop follows the monitors. Installed as /usr/lib/pivuan/monitors by
+# postinst/audio.sh.
+#
+#   monitors start   JWM runs this at login (/usr/lib/pivuan/jwm-desktop); it ends with the
+#                    window manager. Each time the monitors change (Monitor Settings, the layout
+#                    lxrandr saved coming in at login, a monitor plugged in or out), it starts
+#                    the desktop icons again, so each monitor gets its own desktop at its new
+#                    place and size (pcmanfm's desktop does not move them by itself), and maps
+#                    touch to the touchscreen's monitor. When only the input devices change
+#                    (long-press making its pointer, a touchscreen plugged in), it maps touch.
+#   monitors touch   map touch once
+#
+# Touch: X spreads a touchscreen over the whole screen, every monitor together, so with a
+# second monitor a tap would land in the wrong place. The touchscreen's monitor: a DSI one (the
+# Raspberry Pi touch displays) if there is one, else the one with the smallest physical width
+# (a touchscreen is smaller than a desktop monitor). With one monitor, it is the whole screen.
+# The devices: long-press's pointer ("Pivuan long press (...)", pivuan-long-press) and, with
+# long press off, the touchscreen itself (libinput gives "libinput Calibration Matrix" only to
+# touch devices). Needs xinput; without a touch device it does nothing.
+
+# The output the touchscreen is on, from the active monitors ("xrandr --listmonitors" lines
+# such as " 1: +HDMI-2 1024/155x600/86+1920+0  HDMI-2": width in pixels/mm, height, place, then
+# the output's name).
+touch_output() {
+	xrandr --listmonitors 2> /dev/null | awk '
+		NR > 1 {
+			split($3, size, /[\/x+]/)
+			mm = size[2] + 0
+			if (mm == 0) mm = 1000000   # no size known: not taken for the touchscreen
+			if ($NF ~ /^DSI-/ && dsi == "") dsi = $NF
+			if (best == "" || mm < best_mm) { best = $NF; best_mm = mm }
+		}
+		END { print (dsi != "" ? dsi : best) }'
+}
+
+map_touch() {
+	command -v xinput > /dev/null 2>&1 || return 0
+	output="$(touch_output)"
+	[ -n "${output}" ] || return 0
+	for id in $(xinput list --id-only 2> /dev/null); do
+		case "$(xinput list --name-only "${id}" 2> /dev/null)" in
+			"Pivuan long press"*) ;;
+			*) xinput list-props "${id}" 2> /dev/null | grep -q 'libinput Calibration Matrix' || continue ;;
+		esac
+		xinput map-to-output "${id}" "${output}" 2> /dev/null
+	done
+}
+
+# The input devices, to see when they change (nothing without xinput).
+devices() {
+	command -v xinput > /dev/null 2>&1 || return 0
+	xinput list --id-only
+}
+
+start() {
+	# The window manager of this session: when it ends (logging out), so does this.
+	session="$(pgrep -n -u "$(id -u)" -x jwm)"
+	monitors="$(xrandr --listmonitors 2> /dev/null)" || return 0
+	inputs="$(devices 2> /dev/null)"
+	map_touch
+	[ -n "${session}" ] || return 0
+	# Both are quick: they ask X, and do not make it look for monitors again.
+	while sleep 2 && kill -0 "${session}" 2> /dev/null; do
+		now="$(xrandr --listmonitors 2> /dev/null)" || return 0
+		if [ "${now}" != "${monitors}" ]; then
+			# Once they have stayed the same for 2 s, so a layout made in several steps
+			# starts the desktop icons again only once.
+			while sleep 2 && settled="$(xrandr --listmonitors 2> /dev/null)" \
+				&& [ "${settled}" != "${now}" ]; do
+				now="${settled}"
+			done
+			monitors="${now}"
+			[ -x /usr/lib/pivuan/desktop-icons ] && /usr/lib/pivuan/desktop-icons restart
+			map_touch
+		fi
+		now="$(devices 2> /dev/null)"
+		if [ "${now}" != "${inputs}" ]; then
+			inputs="${now}"
+			map_touch
+		fi
+	done
+}
+
+case "$1" in
+	start) start > /dev/null 2>&1 & ;;
+	touch) map_touch ;;
+	*)
+		echo "usage: $0 start | touch" >&2
+		exit 2
+		;;
+esac

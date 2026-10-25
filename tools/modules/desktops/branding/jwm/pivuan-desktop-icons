@@ -15,12 +15,14 @@
 # desktop window covers JWM's background, so it gets the same picture, from Desktop Settings.
 # show_wm_menu: a right click on an empty spot of the desktop goes on to JWM, which opens the
 # Pivuan menu (/etc/jwm/pivuan.jwmrc), not pcmanfm's; on an icon, it is pcmanfm's menu for it.
-# Only these settings, in the [*] group of pcmanfm's desktop-items-0.conf, are written; the
-# icons' places, kept in the same file, stay.
+# Only these settings, in the [*] group of pcmanfm's desktop-items-<n>.conf, are written; the
+# icons' places, kept in the same files, stay. There is one file for each monitor (0 is the
+# first), and each gets the same settings: without them, pcmanfm gives a second monitor no
+# background and a Trash icon. Four are written, so a monitor plugged in later has its own too.
 #
 config="${XDG_CONFIG_HOME:-${HOME}/.config}"
 settings="${config}/pivuan/desktop.conf"
-pcmanfm_conf="${config}/pcmanfm/default/desktop-items-0.conf"
+pcmanfm_dir="${config}/pcmanfm/default"
 default_background=/usr/share/backgrounds/pivuan/background-black.png
 
 # The value of a key in Desktop Settings' file (the last one wins, as in jwm-desktop).
@@ -37,10 +39,9 @@ running() {
 	pgrep -u "$(id -u)" -x pcmanfm > /dev/null 2>&1
 }
 
-write_settings() {
-	background="$(setting background)"
-	[ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
-	mkdir -p "${pcmanfm_conf%/*}"
+# Our settings into one monitor's file ($1), with ${background}.
+write_monitor_settings() {
+	pcmanfm_conf="$1"
 	[ -f "${pcmanfm_conf}" ] || : > "${pcmanfm_conf}"
 	awk -v background="${background}" '
 		function ours() {
@@ -61,6 +62,15 @@ write_settings() {
 		{ print }
 		END { if (!done) { print "[*]"; ours() } }
 	' "${pcmanfm_conf}" > "${pcmanfm_conf}.new" && mv "${pcmanfm_conf}.new" "${pcmanfm_conf}"
+}
+
+write_settings() {
+	background="$(setting background)"
+	[ -n "${background}" ] && [ -f "${background}" ] || background="${default_background}"
+	mkdir -p "${pcmanfm_dir}"
+	for monitor in 0 1 2 3; do
+		write_monitor_settings "${pcmanfm_dir}/desktop-items-${monitor}.conf"
+	done
 }
 
 start() {

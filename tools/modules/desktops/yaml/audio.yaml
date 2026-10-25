@@ -41,7 +41,8 @@ tiers:
       - mousepad
       - celluloid
       - lxpolkit                 # polkit password dialog (started from ~/.jwmrc)
-      - lxrandr
+      - lxrandr                  # Settings > Monitor Settings: extra monitors, kept by its Save
+      - xinput                   # with more than one monitor, touch stays on the touchscreen's own (/usr/lib/pivuan/monitors)
       - lxappearance
       - jgmenu                   # the Pivuan menu: programs by category, made each time it opens
       - unzip                    # Extract Here in pcmanfm, for .zip

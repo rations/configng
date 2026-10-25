@@ -78,6 +78,9 @@ install -Dm 0644 "${desktops_dir}/branding/udev/90-pivuan-backlight.rules" \
 install -d /etc/modules-load.d
 echo i2c-dev > /etc/modules-load.d/pivuan-i2c-dev.conf
 modprobe i2c-dev 2> /dev/null
+#    The desktop follows the monitors: the desktop icons at each monitor's new place, and touch
+#    on the touchscreen's own monitor (xinput).
+install -Dm 0755 "${desktops_dir}/branding/jwm/pivuan-monitors" /usr/lib/pivuan/monitors
 #    The Pivuan menu is jgmenu: /usr/lib/pivuan/menu opens it (the panel button, Alt+F1, a right
 #    click on the desktop) with its look from /etc/pivuan/jgmenurc, and /usr/lib/pivuan/menu-items
 #    makes it each time it opens: the programs by category from their .desktop files
