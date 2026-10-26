@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=On-screen Keyboard
+Comment=Starts Onboard hidden when a touchscreen is attached; it comes up when a text box is tapped
+Exec=sh -c '/usr/lib/pivuan/keyboard touch && exec /usr/lib/pivuan/keyboard start'
+NoDisplay=true
+OnlyShowIn=KDE;

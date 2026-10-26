@@ -1,7 +1,8 @@
 #!/bin/sh
 #
 # Pivuan Audio: the on-screen keyboard (Onboard), for touchscreens. Installed as
-# /usr/lib/pivuan/keyboard by postinst/audio.sh.
+# /usr/lib/pivuan/keyboard by postinst/audio.sh; SonicDE uses it too (postinst/sonicde.sh, its
+# autostart runs "touch" and "start").
 #
 #   keyboard toggle   show the keyboard, or hide it if it is showing (the panel button and the
 #                     System menu); starts Onboard first if it is not running

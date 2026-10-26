@@ -1,0 +1,66 @@
+name: sonicde
+description: "SonicDE - X11 desktop forked from KDE Plasma, with its own Qt in /opt/sonicde"
+display_manager: lightdm
+status: supported
+# Pivuan (Devuan, sysvinit) only, and none of common.yaml (its tiers bring PipeWire, cups,
+# terminator and netplan): everything is listed below.
+devuan_only: true
+inherit_common: false
+
+# SonicDE needs a newer Qt and KDE Frameworks than Devuan has, so Pivuan builds the whole stack
+# into /opt/sonicde (rations/pivuan, sonicde/) and publishes it in an apt repository of its own,
+# signed with the Pivuan key. module_desktop_repo adds it (only that key) before the install;
+# removing the desktop takes it away again.
+repo:
+  url: "https://rations.github.io/pivuan-sonicde"
+  key_url: "https://rations.github.io/pivuan-sonicde/pivuan-archive-keyring.asc"
+  key_fingerprint: "34EA4F115D83793B6C8031554769929F204B18CD"
+  # Not the image's pivuan-archive-keyring.gpg: removing the desktop deletes this file.
+  keyring: "/usr/share/keyrings/pivuan-sonicde.gpg"
+  # Without it the suite would be the Debian base's name (trixie).
+  suite: excalibur
+
+tiers:
+  minimal:
+    packages:
+      # The desktop first: the primary package that marks it installed. It brings the whole
+      # SonicDE stack and what it needs at run time (sonicde's Depends), and its session on
+      # the login screen (postinst/sonicde.sh makes it the default).
+      - sonicde
+      # Login screen, as on XFCE and MATE (greeters/lightdm)
+      - slick-greeter
+      # X server: XLibre's core (modesetting with glamor) and libinput, from the Pivuan apt
+      # repository, as on the other desktops. sonic-win composites by itself (no picom).
+      - xserver-xlibre-core
+      - xserver-xlibre-input-libinput
+      - x11-xkb-utils
+      - keyboard-configuration
+      - libgl1-mesa-dri          # Mesa (V3D) for the modesetting driver's GPU acceleration
+      # Fonts: Plasma's defaults (Noto Sans, Hack in the terminal)
+      - fonts-noto-core
+      - fonts-hack
+      # Network, Bluetooth and sound for SonicDE's applets (module_desktops hands ifupdown's
+      # interfaces to NetworkManager). PulseAudio, not PipeWire: Pivuan runs no PipeWire server.
+      - network-manager
+      - bluez
+      - pulseaudio
+      - pulseaudio-module-bluetooth
+      # On-screen keyboard for touchscreens: Onboard, started hidden at login when a
+      # touchscreen is attached, coming up when a text box is tapped (postinst/sonicde.sh;
+      # Pivuan's build of Onboard, from the Pivuan apt repository). The lock screen has its
+      # own (sonic-keyboard).
+      - onboard
+      - at-spi2-core
+      - gir1.2-atspi-2.0         # Onboard only recommends it; without it, no auto-show
+      - xdg-user-dirs
+      # The boot splash (Pivuan apt repository), for images made before it
+      - pivuan-plymouth-theme
+
+devuan:
+  # Browser: Brave Origin from Brave's apt repository (module_desktops).
+  brave_package: brave-origin
+
+releases:
+  trixie:
+    # SonicDE is built for arm64 only.
+    architectures: [arm64]

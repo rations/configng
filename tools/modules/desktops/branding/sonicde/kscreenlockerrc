@@ -1,0 +1,5 @@
+# SonicDE: the black Pivuan background behind the lock screen. Installed as
+# /etc/xdg/kscreenlockerrc by pivuan-config (postinst/sonicde.sh); a user's own lock screen
+# settings win over it.
+[Greeter][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/backgrounds/pivuan/background-black.png

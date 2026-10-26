@@ -1233,6 +1233,10 @@ function module_desktops() {
 			# the distro even after the DE is gone. Drop it on uninstall.
 			if [[ "$de" =~ ^[a-zA-Z0-9._-]+$ ]]; then
 				rm -f "/etc/apt/preferences.d/${de}"
+				# Pivuan: the desktop's own apt source and key (module_desktop_repo)
+				# go too, or apt would keep fetching a repository nothing uses (SonicDE).
+				rm -f "/etc/apt/sources.list.d/${de}.list"
+				[[ -z "${DESKTOP_REPO_KEYRING:-}" ]] || rm -f "$DESKTOP_REPO_KEYRING"
 			fi
 
 			# Drop the amazingfated rockchip-multimedia PPA pin written

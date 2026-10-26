@@ -231,6 +231,18 @@
                             "help": "Install Pivuan Audio: JWM on XLibre with JACK, PulseAudio and the Pivuan audio applications, no PipeWire. The login screen on tty1 appears when the install finishes."
                         },
                         {
+                            "id": "SONI01",
+                            "description": "Install SonicDE",
+                            "short": "SonicDE",
+                            "command": [
+                                "module_desktops install de=sonicde tier=minimal"
+                            ],
+                            "status": "Stable",
+                            "author": "@rations",
+                            "condition": "! module_desktops installed && module_desktop_supported sonicde",
+                            "help": "Install SonicDE: an X11 desktop forked from KDE Plasma, on XLibre with PulseAudio, with its file manager, terminal, system settings and screenshot tool. Pivuan builds it with its own Qt in /opt/sonicde and adds its apt repository. About 1.5 GB; the LightDM login screen appears when the install finishes."
+                        },
+                        {
                             "id": "I3WM01",
                             "description": "Install i3 (minimal)",
                             "short": "i3",
@@ -476,6 +488,17 @@
                             "author": "@rations",
                             "condition": "module_desktops status de=audio",
                             "help": "Uninstall Pivuan Audio; tty1 gets its text login back at the next boot"
+                        },
+                        {
+                            "id": "SONI02",
+                            "description": "Uninstall SonicDE",
+                            "command": [
+                                "module_desktops remove de=sonicde"
+                            ],
+                            "status": "Stable",
+                            "author": "@rations",
+                            "condition": "module_desktops status de=sonicde",
+                            "help": "Uninstall SonicDE and its apt repository"
                         },
                         {
                             "id": "I3WM02",
