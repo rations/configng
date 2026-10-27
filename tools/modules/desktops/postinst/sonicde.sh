@@ -8,11 +8,18 @@ desktops_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [ -d /etc/armbian/lightdm ]; then cp -R /etc/armbian/lightdm /etc/; fi
 if [ -f /etc/lightdm/lightdm.conf.d/11-armbian.conf ]; then sed -i 's/^user-session=.*/user-session=sonicde/' /etc/lightdm/lightdm.conf.d/11-armbian.conf; fi
 
-# The black Pivuan background on the desktop (once per user, after Plasma has made the
-# default layout) and behind the lock screen.
-install -Dm 0644 "${desktops_dir}/branding/sonicde/pivuan-background.js" \
-	/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/pivuan-background.js
+# Pivuan's first desktop: Silver Dark with the bottom panel (kdeglobals), then, once per user
+# after Plasma has made that layout, the SonicBallLightning background and the panel's launchers
+# (pivuan-layout.js, which replaced pivuan-background.js: the black background). The black
+# Pivuan background stays behind the lock screen, as on the login screen.
+install -Dm 0644 "${desktops_dir}/branding/sonicde/kdeglobals" /etc/xdg/kdeglobals
+updates=/usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates
+rm -f "${updates}/pivuan-background.js"
+install -Dm 0644 "${desktops_dir}/branding/sonicde/pivuan-layout.js" "${updates}/pivuan-layout.js"
 install -Dm 0644 "${desktops_dir}/branding/sonicde/kscreenlockerrc" /etc/xdg/kscreenlockerrc
+# Default applications in SonicDE only (KDE sessions): PDFs and images in qpdfview and LXImage,
+# not Brave.
+install -Dm 0644 "${desktops_dir}/branding/sonicde/kde-mimeapps.list" /etc/xdg/kde-mimeapps.list
 
 # Earlier pivuan-config put a Plasma layout with only the desktop's background in /etc/skel, and
 # so in each home. Plasma makes its default layout (the panel too) only when there is none, so

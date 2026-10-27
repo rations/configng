@@ -1227,6 +1227,12 @@ function module_desktops() {
 			fi
 			rm -f "$desktop_pkg_file" "/etc/armbian/desktop/${de}.tier"
 
+			# Pivuan: the files the desktop's postinst put outside its packages
+			# go too (postrm/<de>.sh, the postinst's counterpart).
+			if [[ -f "${desktops_dir}/postrm/${de}.sh" ]]; then
+				bash "${desktops_dir}/postrm/${de}.sh" || true
+			fi
+
 			# APT pin preferences written by module_desktop_repo apply
 			# to all packages on the system, not just the DE's — leaving
 			# the file behind would keep a third-party archive outranking

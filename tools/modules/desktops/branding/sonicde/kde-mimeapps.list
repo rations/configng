@@ -1,0 +1,16 @@
+# Pivuan: SonicDE's default applications (postinst/sonicde.sh installs this as
+# /etc/xdg/kde-mimeapps.list, read only in KDE sessions, so XFCE, MATE and Pivuan Audio keep
+# theirs). Brave also lists PDFs and images, and would open them otherwise.
+[Default Applications]
+application/pdf=qpdfview.desktop
+application/x-pdf=qpdfview.desktop
+application/postscript=qpdfview.desktop
+image/vnd.djvu=qpdfview.desktop
+image/png=lximage-qt.desktop
+image/jpeg=lximage-qt.desktop
+image/gif=lximage-qt.desktop
+image/webp=lximage-qt.desktop
+image/bmp=lximage-qt.desktop
+image/tiff=lximage-qt.desktop
+image/svg+xml=lximage-qt.desktop
+text/plain=featherpad.desktop

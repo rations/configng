@@ -1,0 +1,6 @@
+# SonicDE: Silver Dark with the bottom panel as the default look (colors, icons, cursor, window
+# borders, panel layout) in place of SonicDE's Silver Light. Installed as /etc/xdg/kdeglobals by
+# pivuan-config (postinst/sonicde.sh); each user's first login applies it, and Global Theme in
+# System Settings changes it as usual.
+[KDE]
+LookAndFeelPackage=org.kde.silverdarkbottompanel.desktop

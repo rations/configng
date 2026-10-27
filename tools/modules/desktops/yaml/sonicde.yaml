@@ -53,6 +53,16 @@ tiers:
       - at-spi2-core
       - gir1.2-atspi-2.0         # Onboard only recommends it; without it, no auto-show
       - xdg-user-dirs
+      # Applications SonicDE has none of, from Devuan: Qt programs that need no KDE Frameworks
+      # (Devuan's KDE applications would bring a second, older KDE Frameworks next to SonicDE's
+      # in /opt). They take SonicDE's icons, colors and fonts. Defaults: kde-mimeapps.list
+      # (postinst/sonicde.sh); VLC is also a launcher in the panel (pivuan-layout.js).
+      - featherpad               # text editor
+      - vlc                      # media player: video and music
+      - lxqt-archiver            # archive manager
+      - qpdfview                 # PDF viewer
+      - lximage-qt               # image viewer
+      - qalculate-qt             # calculator
       # The boot splash (Pivuan apt repository), for images made before it
       - pivuan-plymouth-theme
 
