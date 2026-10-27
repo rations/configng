@@ -675,12 +675,27 @@ function _module_desktops_networkmanager_to_ifupdown() {
 # Usage: _module_desktops_ifupdown_up <iface>...
 #
 function _module_desktops_ifupdown_up() {
-	local iface
+	local iface wait
 	[[ $# -gt 0 ]] || return 0
 	_desktop_in_container && return 0
 	pkill -x wpa_supplicant 2> /dev/null
 	for iface in "$@"; do
+		# The image's wired file names both eth0 and end0: only one of them exists.
+		[[ -e "/sys/class/net/${iface}" ]] || continue
 		ip addr flush dev "$iface" 2> /dev/null
+		# A wired port with no cable: its DHCP client would wait about a minute for
+		# nothing. The link needs a few seconds to show a cable that is plugged in.
+		if [[ ! -d "/sys/class/net/${iface}/wireless" ]]; then
+			ip link set "$iface" up 2> /dev/null
+			for wait in 1 2 3 4 5 6; do
+				[[ "$(cat "/sys/class/net/${iface}/carrier" 2> /dev/null)" == 1 ]] && break
+				sleep 1
+			done
+			if [[ "$(cat "/sys/class/net/${iface}/carrier" 2> /dev/null)" != 1 ]]; then
+				echo "${iface}: no cable; with one plugged in it comes up at the next boot" >&2
+				continue
+			fi
+		fi
 		ifup "$iface" > /dev/null 2>&1 || echo "Warning: could not bring up ${iface}" >&2
 	done
 }
