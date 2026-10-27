@@ -611,6 +611,81 @@ function _module_desktops_ifupdown_to_networkmanager() {
 }
 
 #
+# Pivuan (sysvinit): the reverse of _module_desktops_ifupdown_to_networkmanager,
+# for a desktop's removal when NetworkManager goes with it. Without it the Pi
+# has no network configuration left. Before the purge (it still needs
+# NetworkManager's connection files): the ifupdown files go back to
+# /etc/network/interfaces.d, and a Wi-Fi network that was only set up in the
+# desktop (no ifupdown Wi-Fi file) gets one, written like the first-login
+# wizard's. Prints the interfaces to bring up after the purge
+# (_module_desktops_ifupdown_up).
+# Usage: ifaces=$(_module_desktops_networkmanager_to_ifupdown)
+#
+function _module_desktops_networkmanager_to_ifupdown() {
+	local saved=/etc/network/interfaces.pre-networkmanager
+	local f keyfile iface ssid psk active
+	mkdir -p /etc/network/interfaces.d
+	if [[ -d "$saved" ]]; then
+		for f in "$saved"/*; do
+			[[ -f "$f" ]] || continue
+			mv -n "$f" /etc/network/interfaces.d/
+		done
+		rmdir "$saved" 2> /dev/null
+		echo "Network settings handed back to ifupdown (/etc/network/interfaces.d)" >&2
+	fi
+
+	if ! grep -qs '^[[:space:]]*wpa-ssid' /etc/network/interfaces.d/*; then
+		# The Wi-Fi connection in use, else the first one saved with its password.
+		active=$(nmcli -t -f TYPE,FILENAME connection show --active 2> /dev/null \
+			| awk -F: '$1 == "802-11-wireless" { print $2; exit }')
+		for keyfile in "$active" /etc/NetworkManager/system-connections/*.nmconnection; do
+			[[ -f "$keyfile" ]] || continue
+			grep -qx 'type=wifi' "$keyfile" || continue
+			ssid=$(awk -F= '/^\[/ { s = $0 } s == "[wifi]" && $1 == "ssid" { sub(/^ssid=/, ""); print; exit }' "$keyfile")
+			psk=$(awk -F= '/^\[/ { s = $0 } s == "[wifi-security]" && $1 == "psk" { sub(/^psk=/, ""); print; exit }' "$keyfile")
+			iface=$(awk -F= '/^\[/ { s = $0 } s == "[connection]" && $1 == "interface-name" { print $2; exit }' "$keyfile")
+			if [[ -z "$iface" ]]; then
+				for f in /sys/class/net/*/wireless; do
+					[[ -d "$f" ]] && { iface=$(basename "$(dirname "$f")"); break; }
+				done
+			fi
+			[[ -n "$ssid" && -n "$psk" && -n "$iface" ]] || continue
+			install -m 600 /dev/null "/etc/network/interfaces.d/${iface}"
+			cat > "/etc/network/interfaces.d/${iface}" <<- EOF
+			# Created by pivuan-config from NetworkManager's '${ssid}' when the desktop was removed
+			auto ${iface}
+			iface ${iface} inet dhcp
+			wpa-ssid ${ssid}
+			wpa-psk ${psk}
+			EOF
+			echo "Wi-Fi network '${ssid}' moved to ifupdown" >&2
+			break
+		done
+	fi
+
+	for f in /etc/network/interfaces.d/*; do
+		[[ -f "$f" && "$(basename "$f")" =~ ^[A-Za-z0-9_-]+$ ]] || continue
+		awk '$1 == "iface" && $2 != "lo" { print $2 }' "$f"
+	done | sort -u
+}
+
+#
+# Bring up with ifupdown the interfaces _module_desktops_networkmanager_to_ifupdown
+# printed, once NetworkManager (and the wpa_supplicant it started) are gone.
+# Usage: _module_desktops_ifupdown_up <iface>...
+#
+function _module_desktops_ifupdown_up() {
+	local iface
+	[[ $# -gt 0 ]] || return 0
+	_desktop_in_container && return 0
+	pkill -x wpa_supplicant 2> /dev/null
+	for iface in "$@"; do
+		ip addr flush dev "$iface" 2> /dev/null
+		ifup "$iface" > /dev/null 2>&1 || echo "Warning: could not bring up ${iface}" >&2
+	done
+}
+
+#
 # Devuan (Pivuan): install the browser from Brave's own apt repository, set up
 # the way https://dl.brave.com/install.sh does it (Brave's keyring and deb822
 # source, same file names), and make it the default web browser.
@@ -1219,10 +1294,17 @@ function module_desktops() {
 				# call retries against the same list instead of falling
 				# into the less-precise YAML-walk path.
 				if [[ ${#to_remove[@]} -gt 0 ]]; then
+					# Pivuan: NetworkManager goes too, so ifupdown takes the network back.
+					local ifupdown_ifaces=()
+					if _desktop_is_sysvinit && [[ " ${to_remove[*]} " == *" network-manager "* ]]; then
+						mapfile -t ifupdown_ifaces < <(_module_desktops_networkmanager_to_ifupdown)
+					fi
 					if ! DEBIAN_FRONTEND=noninteractive apt-get -y purge "${to_remove[@]}"; then
+						# NetworkManager may still be running: ifupdown takes the interfaces at the next boot.
 						echo "Error: package purge failed for ${de}; manifest preserved at ${desktop_pkg_file} for retry" >&2
 						return 1
 					fi
+					_module_desktops_ifupdown_up "${ifupdown_ifaces[@]}"
 				fi
 			fi
 			rm -f "$desktop_pkg_file" "/etc/armbian/desktop/${de}.tier"
