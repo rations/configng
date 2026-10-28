@@ -29,44 +29,56 @@ function module_armbian_upgrades () {
 		;;
 		"${commands[1]}")
 			pkg_remove unattended-upgrades
+			# drop the generated config (current + legacy names) so no
+			# periodic/unattended settings linger after disabling.
+			rm -f /etc/apt/apt.conf.d/20-armbian-auto-upgrades \
+				/etc/apt/apt.conf.d/50-armbian-unattended-upgrades \
+				/etc/apt/apt.conf.d/20auto-upgrades \
+				/etc/apt/apt.conf.d/50unattended-upgrades
 		;;
 		"${commands[2]}")
-			# read values from 20auto-upgrades
-			if [[ -f "/etc/apt/apt.conf.d/20auto-upgrades" ]]; then
+			# Systems set up by older armbian-config have only the legacy-named
+			# files, which the edits below would miss. Write the Armbian-named
+			# ones first; defaults also drops the legacy files.
+			if [[ ! -f /etc/apt/apt.conf.d/20-armbian-auto-upgrades || ! -f /etc/apt/apt.conf.d/50-armbian-unattended-upgrades ]]; then
+				${module_options["module_armbian_upgrades,feature"]} ${commands[4]}
+			fi
+			# read values from 20-armbian-auto-upgrades
+			if [[ -f "/etc/apt/apt.conf.d/20-armbian-auto-upgrades" ]]; then
 				Unattended_Upgrade=$(
 					awk -F'"' '/APT::Periodic::Unattended-Upgrade/ {print ($2 == 1) ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/20auto-upgrades
+					/etc/apt/apt.conf.d/20-armbian-auto-upgrades
 					)
 				Update_Package_Lists=$(
 					awk -F'"' '/APT::Periodic::Update-Package-Lists/ {print ($2 == 1) ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/20auto-upgrades
+					/etc/apt/apt.conf.d/20-armbian-auto-upgrades
 					)
 				Download_Upgradeable_Packages=$(
 					awk -F'"' '/APT::Periodic::Download-Upgradeable-Packages/ {print ($2 == 1) ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/20auto-upgrades
+					/etc/apt/apt.conf.d/20-armbian-auto-upgrades
 					)
 			fi
-			# read values from 50unattended-upgrades
-			if [[ -f "/etc/apt/apt.conf.d/50unattended-upgrades" ]]; then
+			# read values from 50-armbian-unattended-upgrades
+			if [[ -f "/etc/apt/apt.conf.d/50-armbian-unattended-upgrades" ]]; then
 				AutoFixInterruptedDpkg=$(
 					awk -F'"' '/Unattended-Upgrade::AutoFixInterruptedDpkg/ {print ($2 == "true") ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/50unattended-upgrades
+					/etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 					)
 				Remove_New_Unused_Dependencies=$(
 					awk -F'"' '/Unattended-Upgrade::Remove-New-Unused-Dependencies/ {print ($2 == "true") ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/50unattended-upgrades
+					/etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 					)
 				Automatic_Reboot=$(
 					awk -F'"' '/Unattended-Upgrade::Automatic-Reboot "/ {print ($2 == "true") ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/50unattended-upgrades
+					/etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 					)
 				Automatic_Reboot_WithUsers=$(
 					awk -F'"' '/Unattended-Upgrade::Automatic-Reboot-WithUsers/ {print ($2 == "true") ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/50unattended-upgrades
+					/etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 					)
 				Remove_Unused_Dependencies=$(
 					awk -F'"' '/Unattended-Upgrade::Remove-Unused-Dependencies/ {print ($2 == "true") ? "ON" : "OFF"}' \
-					/etc/apt/apt.conf.d/50unattended-upgrades
+					/etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 					)
 			fi
 			# toggle options
@@ -81,19 +93,20 @@ function module_armbian_upgrades () {
 				"Automatic-Reboot-WithUsers" "Reboots even if users are logged in." ${Automatic_Reboot_WithUsers:-OFF} \
 				"Remove-Unused-Dependencies" "Removes packages that are no longer required after upgrades." ${Remove_Unused_Dependencies:-OFF}); then
 				# set all to 0 or false
-				sed -i 's/"[0-9]"/"0"/g' /etc/apt/apt.conf.d/20auto-upgrades
-				sed -i 's/"true"/"false"/g' /etc/apt/apt.conf.d/50unattended-upgrades
+				sed -i 's/"[0-9]"/"0"/g' /etc/apt/apt.conf.d/20-armbian-auto-upgrades
+				sed -i 's/"true"/"false"/g' /etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 				for choice in $(echo ${target_sync} | tr -d '"'); do
-					sed -i "s/\($choice \"\)0\(\";\)/\11\2/" /etc/apt/apt.conf.d/20auto-upgrades
-					sed -i "s/\($choice \"\)false\(\";\)/\1true\2/" /etc/apt/apt.conf.d/50unattended-upgrades
+					sed -i "s/\($choice \"\)0\(\";\)/\11\2/" /etc/apt/apt.conf.d/20-armbian-auto-upgrades
+					sed -i "s/\($choice \"\)false\(\";\)/\1true\2/" /etc/apt/apt.conf.d/50-armbian-unattended-upgrades
 				done
-				# APT::Periodic::Enable is the master switch. apt.systemd.daily exits
-				# when it is 0. Armbian ships 0 in 02-armbian-periodic. apt reads
-				# 20auto-upgrades later, so set it here. The reset above clears it.
-				if grep -Eq '^[[:space:]]*APT::Periodic::Enable[[:space:]]*"' /etc/apt/apt.conf.d/20auto-upgrades; then
-					sed -i '/^[[:space:]]*APT::Periodic::Enable[[:space:]]*"/s/"[^"]*"/"1"/' /etc/apt/apt.conf.d/20auto-upgrades
+				# APT::Periodic::Enable is the master switch — apt.systemd.daily exits
+				# when it is 0. The image ships no periodic config of its own, so this
+				# file is the only place that sets it; force it on here (the reset above
+				# cleared it).
+				if grep -Eq '^[[:space:]]*APT::Periodic::Enable[[:space:]]*"' /etc/apt/apt.conf.d/20-armbian-auto-upgrades; then
+					sed -i '/^[[:space:]]*APT::Periodic::Enable[[:space:]]*"/s/"[^"]*"/"1"/' /etc/apt/apt.conf.d/20-armbian-auto-upgrades
 				else
-					sed -i '1i APT::Periodic::Enable "1";' /etc/apt/apt.conf.d/20auto-upgrades
+					sed -i '1i APT::Periodic::Enable "1";' /etc/apt/apt.conf.d/20-armbian-auto-upgrades
 				fi
 			fi
 			srv_restart unattended-upgrades
@@ -108,7 +121,7 @@ function module_armbian_upgrades () {
 		"${commands[4]}")
 
 			# global options
-			cat > "/etc/apt/apt.conf.d/20auto-upgrades" <<- EOT
+			cat > "/etc/apt/apt.conf.d/20-armbian-auto-upgrades" <<- EOT
 			APT::Periodic::Enable "1";
 			APT::Periodic::Update-Package-Lists "1";
 			APT::Periodic::Download-Upgradeable-Packages "1";
@@ -117,7 +130,7 @@ function module_armbian_upgrades () {
 			EOT
 
 			# unattended-upgrades
-			cat > "/etc/apt/apt.conf.d/50unattended-upgrades" <<- EOT
+			cat > "/etc/apt/apt.conf.d/50-armbian-unattended-upgrades" <<- EOT
 			// armbian-config generated
 			Unattended-Upgrade::Origins-Pattern {
 				"o=${DISTRO},n=${DISTROID},l=${DISTRO}";
@@ -145,13 +158,24 @@ function module_armbian_upgrades () {
 			Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
 			// Automatically reboot *WITHOUT CONFIRMATION* if
-			//  the file /var/run/reboot-required is found after the upgrade
-			Unattended-Upgrade::Automatic-Reboot "true";
+			//  the file /var/run/reboot-required is found after the upgrade.
+			// Disabled by default — Armbian does not reboot unattended; the
+			// user reboots when convenient (toggle via armbian-config).
+			Unattended-Upgrade::Automatic-Reboot "false";
 
 			// Automatically reboot even if there are users currently logged in
 			// when Unattended-Upgrade::Automatic-Reboot is set to true
-			Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+			Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
 			EOT
+
+			# Remove any legacy / distro-named files so they cannot shadow the
+			# Armbian-named ones. Older armbian-config and the Debian/Ubuntu
+			# unattended-upgrades package both use 20auto-upgrades /
+			# 50unattended-upgrades; since apt merges all of apt.conf.d and
+			# 50unattended-upgrades sorts AFTER 50-armbian-unattended-upgrades, a
+			# leftover would override these settings (e.g. re-enable auto reboot).
+			rm -f /etc/apt/apt.conf.d/20auto-upgrades \
+				/etc/apt/apt.conf.d/50unattended-upgrades
 
 		;;
 		"${commands[5]}")
