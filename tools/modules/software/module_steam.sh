@@ -507,6 +507,30 @@ module_steam_fex_write_env() {
 	env_file="${env_dir}/steam-fex.conf"
 	runuser -u "$user" -- mkdir -p "$env_dir"
 	printf 'STEAM_COMPAT_GRAPHICS_PROVIDER=%s\n' "$provider" | runuser -u "$user" -- tee "$env_file" >/dev/null
+	module_steam_xsessionrc "$home" "$provider"
+}
+
+#
+# Pivuan (sysvinit): only systemd user sessions read environment.d. Set the variable in
+# ~/.xsessionrc too, which /etc/X11/Xsession (LightDM's session wrapper) reads at each X
+# login. One tagged line, replaced each time; without a provider the line is removed, and
+# the file with it when nothing else is left.
+#
+module_steam_xsessionrc() {
+	local home="$1"
+	local provider="$2"
+	local file="${home}/.xsessionrc"
+	local tag="# pivuan-config: Steam FEX"
+	local user
+
+	[[ -f /etc/devuan_version ]] || return 0
+	user=$(stat -c %U "$home") || return 0
+	if [[ -f "$file" ]]; then
+		runuser -u "$user" -- sed -i "\|${tag}\$|d" "$file"
+		[[ -s "$file" || -n "$provider" ]] || rm -f "$file"
+	fi
+	[[ -n "$provider" ]] || return 0
+	printf 'export STEAM_COMPAT_GRAPHICS_PROVIDER=%q %s\n' "$provider" "$tag" | runuser -u "$user" -- tee -a "$file" >/dev/null
 }
 
 module_steam_fex_publish() {
@@ -605,6 +629,7 @@ module_steam_fex_remove() {
 	fi
 	rm -rf "$dest" "$marker" "${root}/ArchLinux.sqsh.partial" "${root}/ArchLinux.extracting"
 	rm -f "${home}/.config/environment.d/steam-fex.conf"
+	module_steam_xsessionrc "$home"
 	rmdir "$root" "${home}/.local/share/fex-emu" 2>/dev/null || true
 }
 
