@@ -38,6 +38,10 @@ devuan:
     - chromium              # the browser is Brave Origin (brave_package below)
     - armbian-imager        # apt.armbian.com only; Pivuan has no Armbian apt source
     - code                  # apt.armbian.com only
+  packages:
+    # GTK 2 library, for programs that still use it, such as Steam's arm64 client
+    # (steamui.so). audio.yaml and sonicde.yaml list it too: they skip common.yaml.
+    - libgtk2.0-0t64
   # Browser for every tier: this package from Brave's own apt repository
   # (the one https://dl.brave.com/install.sh sets up), installed by
   # module_desktops after the desktop. A failure there only skips the browser.
