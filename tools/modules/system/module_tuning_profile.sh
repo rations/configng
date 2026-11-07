@@ -550,6 +550,8 @@ function _tp_active() {
 declare -g TP_CPU_CONF="/etc/default/cpufrequtils"
 declare -g TP_CPU_DEFAULTS="/etc/default/cpufrequtils.armbian-default"
 declare -g TP_CPU_UNIT_FILE="/etc/systemd/system/armbian-cpufreq.service"
+# Pivuan (Devuan, sysvinit): the same boot step as an init script.
+declare -g TP_CPU_INIT_FILE="/etc/init.d/armbian-cpufreq"
 declare -g TP_CPU_SYS="/sys/devices/system/cpu"
 
 # _tp_cpu_policies -> one cpufreq directory per policy, in CPU order
@@ -859,7 +861,12 @@ function _tp_cpu_apply() {
 function _tp_cpu_ho_covers() {
 	local ho="${TP_CPU_HO:-/usr/lib/armbian/armbian-hardware-optimization}"
 	[[ -x "$ho" ]] || return 1
-	systemctl is-enabled --quiet armbian-hardware-optimize.service 2> /dev/null || return 1
+	if [[ -f /etc/devuan_version ]]; then
+		# Pivuan: the BSP's init script runs it from rcS.d (srv_enabled looks only in rc2-5.d).
+		compgen -G "/etc/rc[S2-5].d/S??armbian-hardware-optimize" > /dev/null || return 1
+	else
+		systemctl is-enabled --quiet armbian-hardware-optimize.service 2> /dev/null || return 1
+	fi
 	if grep -qE '^POLICY[0-9]+_[A-Z_]+' "$TP_CPU_CONF" 2> /dev/null; then
 		grep -qF 'POLICY${n}_GOVERNOR' "$ho" || return 1
 		compgen -G "$TP_CPU_SYS/cpufreq/policy*" > /dev/null || return 1
@@ -874,6 +881,10 @@ function _tp_cpu_ho_covers() {
 # Install the boot unit only when armbian-hardware-optimization cannot apply the
 # file alone.
 function _tp_cpu_sync_unit() {
+	if [[ -f /etc/devuan_version ]]; then
+		_tp_cpu_sync_init
+		return 0
+	fi
 	if ! _tp_cpu_ho_covers; then
 		cat > "$TP_CPU_UNIT_FILE" <<- EOF
 			[Unit]
@@ -895,6 +906,36 @@ function _tp_cpu_sync_unit() {
 		systemctl disable armbian-cpufreq.service > /dev/null 2>&1
 		rm -f "$TP_CPU_UNIT_FILE"
 		systemctl daemon-reload > /dev/null 2>&1
+	fi
+	return 0
+}
+
+# Pivuan (Devuan, sysvinit): _tp_cpu_sync_unit as an init script that runs after
+# armbian-hardware-optimize. pivuan-config is armbian-config under its Pivuan name.
+function _tp_cpu_sync_init() {
+	if ! _tp_cpu_ho_covers; then
+		cat > "$TP_CPU_INIT_FILE" <<- 'EOF'
+			#!/bin/sh
+			### BEGIN INIT INFO
+			# Provides:          armbian-cpufreq
+			# Required-Start:    $local_fs armbian-hardware-optimize
+			# Required-Stop:
+			# Default-Start:     S
+			# Default-Stop:
+			# Short-Description: CPU frequency settings (pivuan-config)
+			### END INIT INFO
+			# Written by pivuan-config (System > Storage > CPU frequency): applies
+			# /etc/default/cpufrequtils when armbian-hardware-optimization cannot.
+			case "$1" in
+				start) /usr/bin/pivuan-config --api module_tuning_profile cpu apply > /dev/null 2>&1 ;;
+			esac
+			exit 0
+		EOF
+		chmod 755 "$TP_CPU_INIT_FILE"
+		update-rc.d armbian-cpufreq defaults > /dev/null 2>&1
+	elif [[ -f "$TP_CPU_INIT_FILE" ]]; then
+		update-rc.d -f armbian-cpufreq remove > /dev/null 2>&1
+		rm -f "$TP_CPU_INIT_FILE"
 	fi
 	return 0
 }
@@ -1161,7 +1202,7 @@ function _tp_cpu_tui_target() {
 }
 
 function _tp_cpu_tui() {
-	local choice d ids sum s boost out
+	local choice d ids sum s boost out note
 	local -a opts policies groups members
 	mapfile -t policies < <(_tp_cpu_policies)
 	mapfile -t groups < <(_tp_cpu_groups)
@@ -1196,7 +1237,12 @@ function _tp_cpu_tui() {
 		fi
 		opts+=("reset" "Return to board defaults")
 
-		choice="$(dialog_menu "CPU frequency" "Driver: $(_tp_cpu_read "${policies[0]}" scaling_driver)\n\nSelect CPUs to configure:" 0 78 12 "${opts[@]}")"
+		# Pivuan: CPU-Power (Pivuan Audio) sets the governor and boost while it is on, and
+		# puts back what it found when it is switched off: what this menu set before then.
+		note=""
+		pgrep -f /usr/libexec/cpu-power/cpu-power-helper > /dev/null 2>&1 &&
+			note="CPU-Power is on. Switch it off before changing the governor or boost here,\nor it puts back its earlier ones when you switch it off (until the next boot).\n\n"
+		choice="$(dialog_menu "CPU frequency" "${note}Driver: $(_tp_cpu_read "${policies[0]}" scaling_driver)\n\nSelect CPUs to configure:" 0 78 12 "${opts[@]}")"
 		case "$choice" in
 			"") return 0 ;;
 			boost)
@@ -1218,7 +1264,8 @@ function module_tuning_profile() {
 	local title="Tuning Profiles"
 
 	# Devuan (Pivuan): the profile's CPU bias is a systemd unit, and there is no systemd.
-	if [[ -f /etc/devuan_version ]]; then
+	# The "cpu" command works there: its boot step is an init script (_tp_cpu_sync_init).
+	if [[ -f /etc/devuan_version && "$1" != "cpu" ]]; then
 		echo "Tuning profiles need systemd; they are not available on Devuan." >&2
 		return 1
 	fi
