@@ -23,10 +23,24 @@ install -Dv /dev/null $profile
 # the .desktop is there; if it was stripped via tier_overrides,
 # it isn't, and the favorites bar stays clean instead of showing
 # a broken shortcut.
-favorites="'terminator.desktop', 'org.gnome.Nautilus.desktop'"
-if [ -f /usr/share/applications/armbian-imager.desktop ]; then
-	favorites="${favorites}, 'armbian-imager.desktop'"
+# Dock: the terminal, then the browsers that are installed. Ptyxis where
+# the release ships it, else Terminator (still installed for splits).
+if [ -f /usr/share/applications/org.gnome.Ptyxis.desktop ]; then
+	favorites="'org.gnome.Ptyxis.desktop'"
+else
+	favorites="'terminator.desktop'"
 fi
+for app in chromium.desktop chromium-browser.desktop google-chrome.desktop; do
+	if [ -f "/usr/share/applications/${app}" ]; then
+		favorites="${favorites}, '${app}'"
+	fi
+done
+# The armbian-imager package ships "Armbian Imager.desktop".
+for app in armbian-imager.desktop "Armbian Imager.desktop"; do
+	if [ -f "/usr/share/applications/${app}" ]; then
+		favorites="${favorites}, '${app}'"
+	fi
+done
 
 cat >> "$keys" <<- EOF
 
@@ -55,6 +69,9 @@ cat >> "$keys" <<- EOF
 	[org/gnome/desktop/peripherals/touchpad]
 	tap-to-click=true
 	click-method='areas'
+
+	[org/gnome/desktop/interface]
+	icon-theme='Numix'
 
 	[org/gnome/desktop/background]
 	picture-uri='file:///usr/share/backgrounds/pivuan/background-black.png'
@@ -85,6 +102,16 @@ dconf update
 # stub being a valid desktop file, abort()s, and Settings will not
 # launch at all. Strip the stub if it exists.
 rm -f /usr/local/share/applications/gnome-ubuntu-panel.desktop
+
+# Ptyxis defaults: the neutral GNOME palette instead of Ubuntu's, and
+# the same transparency as Terminator. Users can still change both.
+if [ -f /usr/share/applications/org.gnome.Ptyxis.desktop ]; then
+	cat > /usr/share/glib-2.0/schemas/90_armbian-ptyxis.gschema.override <<- EOF
+		[org.gnome.Ptyxis.Profile]
+		palette='gnome'
+		opacity=0.90
+	EOF
+fi
 
 #compile schemas
 if [ -d /usr/share/glib-2.0/schemas ]; then

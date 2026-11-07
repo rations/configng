@@ -6,7 +6,8 @@ on:
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   PR_NUMBER: ${{ github.event.number }}
-  REPOSITORY: "apt.armbian.com"
+  # Armbian apt repository for the tests. Beta gets new packages first.
+  REPOSITORY: "beta.armbian.com"
 
 concurrency:
   # One active run per PR (keyed by PR number) or per ref for
@@ -53,7 +54,8 @@ jobs:
           CHANGED_TESTS: "${{ steps.changed-files.outputs.all_changed_files }}"
           # repository_dispatch payload from maintenance-build-debian.
           CP_MODE: ${{ github.event.client_payload.mode }}
-          CP_CHANGED: ${{ github.event.client_payload.changed_tests }}
+          # changed_tests is a JSON array. An env value must be a string.
+          CP_CHANGED: ${{ toJSON(github.event.client_payload.changed_tests) }}
         run: |
 
           # Run each enabled test case against every arch its TESTARCH
@@ -388,6 +390,11 @@ jobs:
           export SYSTEMD_IGNORE_CHROOT=1
           export container=docker
 
+      - name: "Use ${{ env.REPOSITORY }} as Armbian apt repository"
+        run: |
+          sed -i "s#http://apt.armbian.com#http://${REPOSITORY}#" /etc/apt/sources.list.d/armbian.list
+          cat /etc/apt/sources.list.d/armbian.list
+
       - name: "Checkout Armbian configuration tool"
         uses: actions/checkout@v7
         with:
@@ -670,9 +677,11 @@ jobs:
             -e TERM=linux \
             -e DBUS_SESSION_BUS_ADDRESS="unix:path=/run/bus/bus.sock" \
             -e TEST_NAME -e TEST_RELEASE -e TEST_ARCH -e TEST_ID -e TEST_PKG \
+            -e REPOSITORY \
             "${TEST_IMAGE}" \
             bash -c '
               set +e
+              sed -i "s#http://apt.armbian.com#http://${REPOSITORY}#" /etc/apt/sources.list.d/armbian.list
               source "${TEST_PKG}"
               start_ts=$(date +%s)
               figlet "RUN TEST CASE (emulated)"

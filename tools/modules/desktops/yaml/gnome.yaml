@@ -27,6 +27,9 @@ tiers:
       # GTK/GL apps and extensions dlopen at runtime.
       - gnome-tweaks
       - libopengl0
+      # Numix icons: square app icons, in all archives. Set as the
+      # default icon theme in postinst/gnome.sh.
+      - numix-icon-theme
       # Printing: cups is in common.yaml as the spooler, but without
       # drivers the GNOME Settings → Printers panel can't add anything.
       # printer-driver-all pulls in HPLIP/Gutenprint/Foomatic/Splix.
@@ -79,6 +82,9 @@ releases:
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
+      # Ptyxis: GNOME's libadwaita terminal, the dock default.
+      # Terminator (common.yaml) stays for splits and broadcast input.
+      - ptyxis
     packages_remove:
       - pulseaudio
       - pulseaudio-module-bluetooth
@@ -106,11 +112,15 @@ releases:
     # Debian 14 — pipewire replaces pulseaudio (same as trixie).
     architectures: [arm64, amd64]
     packages:
+      # Debian renamed network-manager-gnome.
+      - network-manager-applet
       - accountsservice
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
+      - ptyxis
     packages_remove:
+      - network-manager-gnome
       - pulseaudio
       - pulseaudio-module-bluetooth
 
@@ -124,12 +134,15 @@ releases:
     # loong64 story until the port stabilises.
     architectures: [arm64, amd64]
     packages:
+      - network-manager-applet
       - accountsservice
       - libu2f-udev
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
+      - ptyxis
     packages_remove:
+      - network-manager-gnome
       - pulseaudio
       - pulseaudio-module-bluetooth
 
@@ -171,6 +184,7 @@ releases:
       - gnome-software-plugin-flatpak
       - gnome-software-plugin-fwupd
       - appstream
+      - ptyxis
     packages_remove:
       # pavumeter remains absent from the Ubuntu archive (dropped in plucky).
       - pavumeter

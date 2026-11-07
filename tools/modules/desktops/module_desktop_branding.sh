@@ -145,9 +145,8 @@ function module_desktop_branding() {
 			# ships greeter.dconf-defaults with
 			#   logo='/usr/share/images/vendor-logos/logo-text-version-64.png'
 			# which renders the "Debian 13" logo on the GNOME login screen.
-			# Blank it for a clean, logo-less dark greeter (GDM's default
-			# background is already a plain dark colour — we deliberately do
-			# not set a wallpaper here). Only touches the file if GDM is present.
+			# Blank it for a clean, logo-less greeter. The login background
+			# comes from the extension below. Only touches the file if GDM is present.
 			if [[ -f /etc/gdm3/greeter.dconf-defaults ]]; then
 				if grep -qE '^[[:space:]]*logo=' /etc/gdm3/greeter.dconf-defaults; then
 					sed -i "s|^[[:space:]]*logo=.*|logo=''|" /etc/gdm3/greeter.dconf-defaults
@@ -156,33 +155,21 @@ function module_desktop_branding() {
 				fi
 			fi
 
-			# Plymouth BOOT splash branding (Debian-based builds).
-			# The stock Debian plymouth initramfs hook
-			# /usr/share/initramfs-tools/hooks/plymouth overwrites EVERY
-			# two-step theme's watermark.png inside the initramfs with
-			# /usr/share/desktop-base/debian-logos/logo-text-version-64.png.
-			# So the *boot* splash shows the Debian logo even when the theme
-			# is Armbian — while the *shutdown* splash (rendered from the
-			# rootfs theme, which the hook never touches) correctly shows
-			# Armbian. Point those vendor logos at the Armbian watermark so
-			# the hook bakes the right image into the initramfs. This is a
-			# Debian-wide quirk; Ubuntu's plymouth hook does not do this.
-			local armbian_wm="/usr/share/plymouth/themes/armbian/watermark.png"
-			if [[ -f "$armbian_wm" ]]; then
-				local baked=0
-				for s in 64 128 256; do
-					local dl="/usr/share/desktop-base/debian-logos/logo-text-version-${s}.png"
-					if [[ -f "$dl" ]]; then
-						cp "$armbian_wm" "$dl" && baked=1
-					fi
-				done
-				# Regenerate the initramfs so the boot watermark takes effect.
-				# The image build rebuilds the initramfs again at the end, so
-				# this is redundant there but required when run on a live
-				# system; non-fatal if there is no kernel/initramfs yet.
-				if [[ "$baked" == 1 ]] && command -v update-initramfs >/dev/null 2>&1; then
-					update-initramfs -u >/dev/null 2>&1 || true
-				fi
+			# GDM login background: the blurred Armbian wallpaper. The theme sets
+			# a plain colour in #lockDialogGroup; a small GNOME Shell extension that
+			# runs only on the login screen overrides it with its stylesheet.
+			# GDM compiles /usr/share/gdm/dconf/* on each start (generate-config),
+			# so 95-armbian-login enables the extension for the gdm user only.
+			# Same on Debian and Ubuntu. Needs GNOME Shell 45 or newer (ES module
+			# extensions); older shells keep the plain background.
+			local shell_ver shell_major=0
+			shell_ver=$(dpkg-query -W -f='${Version}' gnome-shell 2>/dev/null)
+			# Leading digits after the epoch: 1:43.9-1 -> 43, 48~beta-4 -> 48.
+			[[ "${shell_ver#*:}" =~ ^([0-9]+) ]] && shell_major=${BASH_REMATCH[1]}
+			if [[ -d /usr/share/gdm/dconf && -d "$desktop_dir/branding/gdm" ]] && (( shell_major >= 45 )); then
+				mkdir -p /usr/share/gnome-shell/extensions
+				cp -R "$desktop_dir/branding/gdm/extensions/." /usr/share/gnome-shell/extensions/
+				install -m 644 "$desktop_dir/branding/gdm/95-armbian-login" /usr/share/gdm/dconf/95-armbian-login
 			fi
 
 			# DE-specific postinst script. Runs unconditionally — including
