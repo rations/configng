@@ -61,6 +61,7 @@ devuan:
     - pipewire-audio
     - pipewire-pulse
     - wireplumber
+    - mate-polkit             # trixie's agent for XFCE; Pivuan's is xfce-polkit (below)
   packages:
     - pulseaudio
     - pulseaudio-module-bluetooth

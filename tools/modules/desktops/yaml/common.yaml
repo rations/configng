@@ -38,6 +38,13 @@ devuan:
     - chromium              # the browser is Brave Origin (brave_package below)
     - armbian-imager        # apt.armbian.com only; Pivuan has no Armbian apt source
     - code                  # apt.armbian.com only
+    - armbian-firstrun-gui  # apt.armbian.com only
+    - network-manager-config-connectivity-armbian  # apt.armbian.com only
+    - update-manager        # apt.armbian.com only (Debian has none)
+    - software-properties-gtk  # not in Devuan; update-manager opens it
+    - iio-sensor-proxy      # started only by its systemd unit (no init script, no D-Bus activation)
+    - modemmanager          # no modem on Pivuan; it probes USB serial ports (ttyACM), such as Arduino-style controllers
+    - usb-modeswitch        # switches USB modems into modem mode: no modem, no use
   packages:
     # GTK 2 library, for programs that still use it, such as Steam's arm64 client
     # (steamui.so). audio.yaml and sonicde.yaml list it too: they skip common.yaml.

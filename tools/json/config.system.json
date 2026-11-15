@@ -1221,7 +1221,7 @@
                             ],
                             "status": "Preview",
                             "author": "@igorpecovnik",
-                            "condition": "module_luks_rekey status",
+                            "condition": "[[ ! -f /etc/devuan_version ]] && module_luks_rekey status",
                             "help": "All copies of an autounlock image share one LUKS key. Make a new keyfile and re-encrypt the root."
                         },
                         {
@@ -1233,7 +1233,7 @@
                             ],
                             "status": "Preview",
                             "author": "@igorpecovnik",
-                            "condition": "systemctl -q is-active armbian-luks-rekey",
+                            "condition": "[[ ! -f /etc/devuan_version ]] && systemctl -q is-active armbian-luks-rekey",
                             "help": "Show how far the re-encryption of the root is."
                         },
                         {
