@@ -14,6 +14,11 @@ tiers:
     packages:
       - xfce4
       - xfce4-goodies
+      # APT::Install-Recommends is off. These are xfce4 recommends:
+      # notifications, screen lock, thumbnails.
+      - xfce4-notifyd
+      - light-locker
+      - tumbler
       - xfce4-power-manager
       - lightdm
       - slick-greeter
@@ -43,6 +48,7 @@ tiers:
       - system-config-printer
       - thunar-volman
       - viewnior
+      - network-manager-gnome
       - xdg-user-dirs
       - xdg-user-dirs-gtk
 
@@ -81,12 +87,16 @@ releases:
   bookworm:
     architectures: [arm64, amd64, armhf]
     packages:
+      # Without a polkit agent, admin actions fail with no password prompt.
+      - mate-polkit
       - accountsservice
       - libu2f-udev
 
   trixie:
     architectures: [arm64, amd64, armhf, riscv64]
     packages:
+      # The applet needs a polkit agent. Name one, else apt picks cinnamon.
+      - mate-polkit
       - accountsservice
       - libu2f-udev
       - pipewire-audio
@@ -99,6 +109,8 @@ releases:
   noble:
     architectures: [arm64, amd64, armhf, riscv64]
     packages:
+      # Without a polkit agent, admin actions fail with no password prompt.
+      - mate-polkit
       - polkitd
       - pkexec
       - libu2f-udev
@@ -113,11 +125,19 @@ releases:
     # Debian 14 — pipewire replaces pulseaudio (same as trixie).
     architectures: [arm64, amd64, armhf, riscv64]
     packages:
+      # evince is not in forky. papers replaces it.
+      - papers
+      - network-manager-applet
+      - nm-connection-editor
+      # The applet needs a polkit agent. Name one, else apt picks cinnamon.
+      - xfce-polkit
       - accountsservice
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
     packages_remove:
+      - evince
+      - network-manager-gnome
       - pulseaudio
       - pulseaudio-module-bluetooth
 
@@ -126,12 +146,16 @@ releases:
     # Includes loong64, which is a sid-only Armbian arch.
     architectures: [arm64, amd64, armhf, riscv64, loong64]
     packages:
+      - network-manager-applet
+      - nm-connection-editor
+      # The applet needs a polkit agent. Name one, else apt picks cinnamon.
+      - xfce-polkit
       - accountsservice
-      - libu2f-udev
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
     packages_remove:
+      - network-manager-gnome
       - pulseaudio
       - pulseaudio-module-bluetooth
 
@@ -142,6 +166,8 @@ releases:
     # pulseaudio remains the default audio stack on jammy.
     architectures: [arm64, amd64, armhf, riscv64]
     packages:
+      # Without a polkit agent, admin actions fail with no password prompt.
+      - mate-polkit
       - polkitd
       - pkexec
       - libu2f-udev
@@ -152,10 +178,17 @@ releases:
     # Ubuntu 26.04 LTS — same as questing; pavumeter still absent.
     architectures: [arm64, amd64, armhf, riscv64]
     packages:
+      # Without a polkit agent, admin actions fail with no password prompt.
+      - xfce-polkit
       - polkitd
       - pkexec
       - libfido2-1
+      - pipewire-audio
+      - pipewire-pulse
+      - wireplumber
     packages_remove:
+      - pulseaudio
+      - pulseaudio-module-bluetooth
       # pavumeter remains absent from the Ubuntu archive (dropped in plucky).
       - pavumeter
     packages_uninstall:

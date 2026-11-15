@@ -296,3 +296,149 @@ setup() {
 	run install_plan_layout bogus ext4 0 $(( 16 * GIB )) 512 0
 	[ "$status" -eq 64 ]
 }
+
+# --- encrypted root (LUKS) ---------------------------------------------------
+
+@test "crypt plan: uefi gets an ext4 /boot between the ESP and the root" {
+	run install_plan_layout uefi ext4 1 $(( 32 * GIB )) 512 0 "" 1
+	[ "$status" -eq 0 ]
+	[ "$(grep '^part=' <<<"$output" | tr '\n' ' ')" = "part=esp:512MiB:vfat:esp,boot part=boot:1024MiB:ext4: part=root:100%:ext4: " ]
+}
+
+@test "crypt plan: emmc ext4 gets a /boot partition, as btrfs does" {
+	run install_plan_layout emmc ext4 0 $(( 32 * GIB )) 512 0 "" 1
+	[ "$(grep '^part=' <<<"$output" | tr '\n' ' ')" = "part=boot:512MiB:ext4:boot part=root:100%:ext4: " ]
+}
+
+@test "crypt plan: bios msdos puts the boot flag on /boot" {
+	run install_plan_layout bios ext4 0 $(( 32 * GIB )) 512 0 "" 1
+	grep -qx 'table=msdos' <<<"$output"
+	[ "$(grep '^part=' <<<"$output" | tr '\n' ' ')" = "part=boot:1024MiB:ext4:boot part=root:100%:ext4: " ]
+}
+
+@test "crypt plan: bios gpt keeps bios_grub first, then /boot" {
+	run install_plan_layout bios ext4 0 $(( 32 * GIB )) 512 0 gpt 1
+	[ "$(grep '^part=' <<<"$output" | tr '\n' ' ')" = "part=biosboot:1MiB::bios_grub part=boot:1024MiB:ext4: part=root:100%:ext4: " ]
+}
+
+@test "crypt plan: mtd and ufs get /boot on the target, sd does not" {
+	run install_plan_layout mtd ext4 0 $(( 32 * GIB )) 512 0 "" 1
+	[ "$(grep -c '^part=' <<<"$output")" -eq 2 ]
+	run install_plan_layout ufs ext4 0 $(( 32 * GIB )) 4096 0 "" 1
+	[ "$(grep -c '^part=' <<<"$output")" -eq 2 ]
+	run install_plan_layout sd ext4 0 $(( 32 * GIB )) 512 0 "" 1
+	[ "$(grep -c '^part=' <<<"$output")" -eq 1 ]
+}
+
+@test "crypt plan: no crypt argument keeps the old layouts" {
+	run install_plan_layout uefi ext4 1 $(( 32 * GIB )) 512 0
+	[ "$(grep -c '^part=' <<<"$output")" -eq 2 ]
+	run install_plan_layout emmc ext4 0 $(( 32 * GIB )) 512 0
+	[ "$(grep '^part=' <<<"$output")" = "part=root:100%:ext4:boot" ]
+}
+
+@test "crypt: sd and uefi-dualboot cannot boot an encrypted root" {
+	run install_crypt_mode_ok sd
+	[ "$status" -ne 0 ]
+	run install_crypt_mode_ok uefi-dualboot
+	[ "$status" -ne 0 ]
+	for m in uefi bios emmc spi standalone mtd ufs native split-emmc; do
+		install_crypt_mode_ok "$m"
+	done
+}
+
+@test "crypt: armbianEnv.txt gets cryptdevice=, other configs only the mapper" {
+	CRYPTROOT_MAPPER=armbian-root
+	run install_crypt_bootarg /x/boot/armbianEnv.txt 1234-abcd
+	[ "$output" = "/dev/mapper/armbian-root cryptdevice=UUID=1234-abcd:armbian-root" ]
+	run install_crypt_bootarg /x/boot/extlinux/extlinux.conf 1234-abcd
+	[ "$output" = "/dev/mapper/armbian-root" ]
+	run install_crypt_bootarg /x/boot/firmware/cmdline.txt ""
+	[ "$output" = "/dev/mapper/armbian-root" ]
+}
+
+# Each check test starts clean and asserts the logged reason, so a failure
+# for another reason cannot pass.
+_crypt_check_env() {
+	unset CRYPTROOT_PASSPHRASE CRYPTROOT_AUTOUNLOCK CRYPTROOT_SSH_UNLOCK CRYPTROOT_SSH_UNLOCK_KEYS CRYPTROOT_SSH_UNLOCK_PORT CRYPTROOT_PARAMETERS
+	CRYPTROOT_ENABLE=yes CRYPTROOT_MAPPER=bats-crypt-unused
+	INSTALL_LOG="$BATS_TEST_TMPDIR/install.log"; : >"$INSTALL_LOG"
+	install_crypt_packages() { :; }
+	cryptsetup() { :; }   # the check only asks that the tool exists
+	_install_dm_crypt_ok() { :; }
+}
+
+@test "crypt check: asks for a reboot when the running kernel has no modules" {
+	_crypt_check_env
+	CRYPTROOT_AUTOUNLOCK=yes
+	_install_dm_crypt_ok() { return 1; }
+	uname() { echo bats-no-such-kernel; }
+	run install_crypt_check uefi
+	[ "$status" -eq "$INSTALL_EX_TOOL" ]
+	grep -q 'no modules for the running kernel bats-no-such-kernel; reboot first' "$INSTALL_LOG"
+}
+
+@test "crypt check: refuses without a passphrase or autounlock" {
+	_crypt_check_env
+	run install_crypt_check uefi
+	[ "$status" -eq "$INSTALL_EX_USAGE" ]
+	grep -q 'set a passphrase or the autounlock' "$INSTALL_LOG"
+}
+
+@test "crypt check: autounlock needs no passphrase" {
+	_crypt_check_env
+	CRYPTROOT_AUTOUNLOCK=yes
+	run install_crypt_check uefi
+	[ "$status" -eq 0 ]
+}
+
+@test "crypt check: refuses the sd boot mode" {
+	_crypt_check_env
+	CRYPTROOT_AUTOUNLOCK=yes
+	run install_crypt_check sd
+	[ "$status" -eq "$INSTALL_EX_USAGE" ]
+	grep -q "boot mode 'sd' cannot boot an encrypted root" "$INSTALL_LOG"
+}
+
+@test "crypt check: refuses a bad mapper name" {
+	_crypt_check_env
+	CRYPTROOT_PASSPHRASE=x CRYPTROOT_MAPPER='a b'
+	run install_crypt_check uefi
+	[ "$status" -eq "$INSTALL_EX_USAGE" ]
+	grep -q "bad mapper name 'a b'" "$INSTALL_LOG"
+}
+
+@test "crypt check: refuses SSH unlock without public keys" {
+	_crypt_check_env
+	CRYPTROOT_PASSPHRASE=x CRYPTROOT_SSH_UNLOCK=yes CRYPTROOT_SSH_UNLOCK_KEYS=/nonexistent
+	run install_crypt_check uefi
+	[ "$status" -eq "$INSTALL_EX_USAGE" ]
+	grep -q 'SSH unlock needs public keys in /nonexistent' "$INSTALL_LOG"
+}
+
+@test "crypt check: names the missing packages" {
+	_crypt_check_env
+	install_crypt_packages() { echo cryptsetup-initramfs; }
+	CRYPTROOT_PASSPHRASE=x
+	run install_crypt_check emmc
+	[ "$status" -eq "$INSTALL_EX_TOOL" ]
+	grep -q 'install cryptsetup-initramfs first' "$INSTALL_LOG"
+}
+
+@test "crypt defaults: a held armbian-root gives the next free name" {
+	unset CRYPTROOT_MAPPER
+	local held="$BATS_TEST_TMPDIR/mapper"
+	mkdir -p "$held"
+	# Point the /dev/mapper test at a fixture with -e wrapped in a function.
+	_crypt_defaults_in() { sed "s|/dev/mapper/|$held/|g" <<<"$(declare -f install_crypt_defaults)"; }
+	eval "$(_crypt_defaults_in)"
+	install_crypt_defaults
+	[ "$CRYPTROOT_MAPPER" = armbian-root ]
+	touch "$held/armbian-root" "$held/armbian-root-2"
+	unset CRYPTROOT_MAPPER
+	install_crypt_defaults
+	[ "$CRYPTROOT_MAPPER" = armbian-root-3 ]
+	CRYPTROOT_MAPPER=mine
+	install_crypt_defaults
+	[ "$CRYPTROOT_MAPPER" = mine ]
+}

@@ -352,16 +352,11 @@ function _module_desktops_rockchip_multimedia() {
 # fragment falls back to password auth when no finger is enrolled,
 # so machines without a reader still log in normally.
 #
-# Skipped in build mode (no real users yet) and on hosts where the
-# fprintd userspace didn't actually install (older releases / arches
-# stripped via tier_overrides).
+# Also runs in build mode: the PAM stack is system-wide, so images
+# need it too. Skipped on hosts where the fprintd userspace did not
+# install (older releases / arches stripped via tier_overrides).
 #
 function _module_desktops_configure_fprintd() {
-	local mode="${1:-}"
-	if [[ "$mode" == "build" ]]; then
-		debug_log "_module_desktops_configure_fprintd: mode=build, skipping pam-auth-update"
-		return 0
-	fi
 	if ! command -v fprintd-enroll > /dev/null 2>&1; then
 		debug_log "_module_desktops_configure_fprintd: fprintd not installed, skipping"
 		return 0
@@ -372,6 +367,55 @@ function _module_desktops_configure_fprintd() {
 	fi
 	debug_log "_module_desktops_configure_fprintd: enabling fprintd PAM module"
 	DEBIAN_FRONTEND=noninteractive pam-auth-update --enable fprintd 2> /dev/null || true
+}
+
+#
+# profile-sync-daemon (psd) copies the browser profiles back to disk when
+# the user session stops. Ubuntu's systemd caps that stop at 5 s
+# (user@.service.d/timeout.conf) and kills a longer copy-back, so the
+# profiles go through crash recovery at the next login. Raise the cap to
+# 60 s where that Ubuntu file exists; Debian keeps its 120 s default.
+# The "zz-" name sorts after Ubuntu's timeout.conf. See configng#1072.
+#
+# _module_desktops_configure_psd <mode> [user]
+#   With a user: psd 6.x mounts its overlays through psd-overlay-helper as
+#   root, so grant it in a sudoers drop-in. psd 7 and later have no helper
+#   and need no sudo.
+#
+function _module_desktops_configure_psd() {
+	local mode="${1:-}" user="${2:-}"
+	command -v psd > /dev/null 2>&1 || return 0
+
+	if [[ -f /usr/lib/systemd/system/user@.service.d/timeout.conf ]]; then
+		mkdir -p /etc/systemd/system/user@.service.d
+		cat > /etc/systemd/system/user@.service.d/zz-armbian-psd-timeout.conf <<- EOF
+			# Written by armbian-config: psd copies browser profiles back at logout.
+			[Service]
+			TimeoutStopSec=60
+		EOF
+		[[ "$mode" != "build" ]] && ! _desktop_in_container && systemctl daemon-reload 2> /dev/null
+	fi
+
+	[[ -n "$user" && -x /usr/bin/psd-overlay-helper ]] || return 0
+	local sudoers=/etc/sudoers.d/armbian-psd tmp uid
+	# Use the UID: sudo reads a user named ALL as all users.
+	uid="$(id -u "$user" 2> /dev/null)" || return 0
+	local rule="#${uid} ALL=(ALL) NOPASSWD: /usr/bin/psd-overlay-helper"
+	grep -qsxF -- "$rule" "$sudoers" && return 0
+	# sudo skips names with a dot, so the temporary file is never read.
+	tmp="$(mktemp /etc/sudoers.d/.armbian-psd.XXXXXX)" || return 0
+	# Keep the grants of other users. Stop if the file exists but cannot be read.
+	if [[ -e "$sudoers" ]] && ! cat "$sudoers" > "$tmp"; then
+		rm -f "$tmp"
+		return 0
+	fi
+	echo "$rule" >> "$tmp"
+	chmod 440 "$tmp"
+	if visudo -cqf "$tmp" > /dev/null 2>&1; then
+		mv "$tmp" "$sudoers"
+	else
+		rm -f "$tmp"
+	fi
 }
 
 function _module_desktops_configure_networking() {
@@ -1003,10 +1047,24 @@ function module_desktops() {
 			for exclude in $DESKTOP_PACKAGES_EXCLUDE; do
 				apt_extra+=("${exclude}-")
 			done
-			if ! pkg_install --allow-downgrades -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "${apt_extra[@]}" ${DESKTOP_PACKAGES}; then
+			# Packages from the Armbian repository only. Skip them when apt has no
+			# candidate: no Armbian source, or the repository does not have them yet.
+			local -a desktop_packages=()
+			local pkg
+			for pkg in ${DESKTOP_PACKAGES}; do
+				if [[ "$pkg" == update-manager || "$pkg" == software-properties-gtk ]] && ! apt-cache show "$pkg" > /dev/null 2>&1; then
+					echo "Warning: ${pkg} is not in the configured repositories; skipping it" >&2
+					continue
+				fi
+				desktop_packages+=("$pkg")
+			done
+			if ! pkg_install --allow-downgrades -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "${apt_extra[@]}" "${desktop_packages[@]}"; then
 				echo "Error: ${de} package install failed; aborting before any system state is changed" >&2
 				return 1
 			fi
+			# apt gets AppStream metadata only when the appstream package is installed.
+			# Refresh now, so Discover and GNOME Software list the applications at the first start.
+			pkg_update || true
 
 			# install and register display manager
 			if [[ -n "$DESKTOP_DM" && "$DESKTOP_DM" != "none" ]]; then
@@ -1103,7 +1161,10 @@ function module_desktops() {
 			# the user enrols a finger via `fprintd-enroll`. Inert on
 			# hosts without a reader (libpam-fprintd falls back to
 			# password) and on tiers/arches that stripped fprintd.
-			_module_desktops_configure_fprintd "$mode"
+			_module_desktops_configure_fprintd
+
+			# Give psd time to copy the browser profiles back at logout.
+			_module_desktops_configure_psd "$mode"
 
 			# Wire up the Rockchip 3D + multimedia stack on
 			# rk3588-family / vendor-kernel boards: panthor-gpu DT
@@ -1130,8 +1191,7 @@ function module_desktops() {
 				local user_home
 				user_home=$(getent passwd "$user" | cut -d: -f6)
 				if command -v psd > /dev/null 2>&1; then
-					grep -q overlay-helper /etc/sudoers 2>/dev/null || \
-						echo "${user} ALL=(ALL) NOPASSWD: /usr/bin/psd-overlay-helper" >> /etc/sudoers
+					_module_desktops_configure_psd "$mode" "$user"
 					touch "${user_home}/.activate_psd"
 				fi
 
@@ -1379,6 +1439,20 @@ function module_desktops() {
 			# removed, the user is almost certainly done with that
 			# customisation too. Safe to rm unconditionally.
 			rm -f /etc/chromium.d/armbian-rk3588-multimedia
+
+			# Drop the psd stop timeout and sudoers drop-ins written by
+			# _module_desktops_configure_psd.
+			rm -f /etc/systemd/system/user@.service.d/zz-armbian-psd-timeout.conf /etc/sudoers.d/armbian-psd \
+				/etc/sudoers.d/armbian-firstlogin-psd
+			# Older installs appended the psd grant to /etc/sudoers.
+			if grep -qs 'NOPASSWD: /usr/bin/psd-overlay-helper$' /etc/sudoers; then
+				local sudoers_tmp
+				sudoers_tmp="$(mktemp /etc/.sudoers.XXXXXX)" &&
+					sed '\|^[[:alnum:]_][[:alnum:]._-]* ALL=(ALL) NOPASSWD: /usr/bin/psd-overlay-helper$|d' /etc/sudoers > "$sudoers_tmp" &&
+					chmod 440 "$sudoers_tmp" && visudo -cqf "$sudoers_tmp" > /dev/null 2>&1 &&
+					mv "$sudoers_tmp" /etc/sudoers
+				rm -f "$sudoers_tmp"
+			fi
 
 			# Reclaim disk space: clear apt's downloaded .deb cache. A full
 			# DE removal frees hundreds of MB of installed files; the

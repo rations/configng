@@ -11,6 +11,7 @@ setup() {
 	partitioner_mtd_list() { :; }
 	partitioner_emmc_device() { echo /dev/mmcblk0; }
 	install_disk_in_use() { return 1; }
+	pkg_update() { :; }
 	unset BOOTLOADER_BOOTS_FROM
 }
 
@@ -353,4 +354,88 @@ setup() {
 	lsblk() { [[ "${*: -1}" == /dev/mmcblk0p1 ]] && echo mmcblk0; }
 	run partitioner_root_disk
 	[ "$output" = "mmcblk0" ]
+}
+
+@test "fs packages: btrfs installs btrfs-progs and armbian-snapshots together, without a question" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && [[ -e "$BATS_TEST_TMPDIR/pkg" ]] && return 0; [[ "$2" == mkfs.* ]] && return 1; builtin command "$@"; }
+	dpkg() { [[ -e "$BATS_TEST_TMPDIR/pkg" ]] && echo "Status: install ok installed"; }
+	dialog_yesno() { echo asked >"$BATS_TEST_TMPDIR/asked"; return 1; }
+	dialog_infobox() { :; }
+	# The output of pkg_install goes to the log: leave a file.
+	pkg_install() { echo "$*" >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool btrfs 1
+	[ "$status" -eq 0 ]
+	grep -qx "btrfs-progs armbian-snapshots" "$BATS_TEST_TMPDIR/pkg"
+	[ ! -e "$BATS_TEST_TMPDIR/asked" ]
+}
+
+@test "fs packages: btrfs installs only armbian-snapshots when mkfs.btrfs is there" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && return 0; builtin command "$@"; }
+	dpkg() { [[ -e "$BATS_TEST_TMPDIR/pkg" ]] && echo "Status: install ok installed"; }
+	pkg_install() { echo "$*" >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -eq 0 ]
+	grep -qx armbian-snapshots "$BATS_TEST_TMPDIR/pkg"
+}
+
+@test "fs packages: btrfs fails when armbian-snapshots does not install" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && return 0; builtin command "$@"; }
+	dpkg() { :; }
+	pkg_install() { return 100; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -ne 0 ]
+}
+
+@test "fs packages: nothing to install when all are there" {
+	command() { [[ "$2" == mkfs.* ]] && return 0; builtin command "$@"; }
+	dpkg() { echo "Status: install ok installed"; }
+	pkg_install() { echo "$*" >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -eq 0 ]
+	run partitioner_ensure_fs_tool f2fs 0
+	[ "$status" -eq 0 ]
+	[ ! -e "$BATS_TEST_TMPDIR/pkg" ]
+}
+
+@test "fs packages: ext4 installs nothing" {
+	dpkg() { :; }
+	pkg_install() { echo "$*" >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool ext4 0
+	[ ! -e "$BATS_TEST_TMPDIR/pkg" ]
+}
+
+@test "fs packages: a half-configured armbian-snapshots counts as missing" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && return 0; builtin command "$@"; }
+	dpkg() { echo "Status: install ok half-configured"; }
+	pkg_install() { return 0; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -ne 0 ]
+}
+
+@test "fs packages: the package lists are refreshed before the install" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && return 0; builtin command "$@"; }
+	dpkg() { [[ -e "$BATS_TEST_TMPDIR/pkg" ]] && echo "Status: install ok installed"; }
+	pkg_update() { echo update >>"$BATS_TEST_TMPDIR/order"; }
+	pkg_install() { echo install >>"$BATS_TEST_TMPDIR/order"; : >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -eq 0 ]
+	[ "$(tr '\n' ' ' <"$BATS_TEST_TMPDIR/order")" = "update install " ]
+}
+
+@test "fs packages: a failed refresh does not stop the install" {
+	command() { [[ "$1 $2" == "-v mkfs.btrfs" ]] && return 0; builtin command "$@"; }
+	dpkg() { [[ -e "$BATS_TEST_TMPDIR/pkg" ]] && echo "Status: install ok installed"; }
+	pkg_update() { return 100; }
+	pkg_install() { : >"$BATS_TEST_TMPDIR/pkg"; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -eq 0 ]
+}
+
+@test "fs packages: no refresh when nothing is missing" {
+	command() { [[ "$2" == mkfs.* ]] && return 0; builtin command "$@"; }
+	dpkg() { echo "Status: install ok installed"; }
+	pkg_update() { : >"$BATS_TEST_TMPDIR/updated"; }
+	run partitioner_ensure_fs_tool btrfs 0
+	[ "$status" -eq 0 ]
+	[ ! -e "$BATS_TEST_TMPDIR/updated" ]
 }

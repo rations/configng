@@ -21,10 +21,45 @@ tiers:
       - bluedevil
       - gwenview
       - kscreen
-      - network-manager-gnome
       - okular
       - plasma-nm
       - plasma-pa
+      # plasma-desktop only recommends these. The panel has launchers for both.
+      # Discover brings PackageKit, its apt backend, and shows updates.
+      - plasma-discover
+      # Firmware updates in Discover.
+      - fwupd
+      - plasma-discover-backend-fwupd
+      - systemsettings
+      # More plasma-desktop / plasma-workspace recommends. Without
+      # them: no power management, no portal, no Dolphin thumbnails,
+      # no wallet unlock at login, empty system monitor widgets.
+      - breeze-gtk-theme
+      - ffmpegthumbs
+      - kde-config-gtk-style
+      - kde-config-screenlocker
+      - kde-config-sddm
+      - kde-spectacle
+      # Spectacle text recognition (OCR).
+      - tesseract-ocr
+      - tesseract-ocr-eng
+      - kdegraphics-thumbnailers
+      - kinfocenter
+      # Info Center pages run these tools. Without them, the pages are empty.
+      - aha
+      - clinfo
+      - libdisplay-info-bin
+      - pulseaudio-utils
+      - wayland-utils
+      - kio-extras
+      - kmenuedit
+      - ksshaskpass
+      - ksystemstats
+      - kwalletmanager
+      - libpam-kwallet5
+      - plasma-systemmonitor
+      - powerdevil
+      - xdg-desktop-portal-kde
       - xserver-xorg
       - dbus-x11
       - dmz-cursor-theme
@@ -46,8 +81,13 @@ tiers:
       - gnome-text-editor
       - file-roller
       - loupe
+      - gnome-calculator
     packages:
       - kate
+      - kcalc
+      - partitionmanager
+      - plasma-browser-integration
+      - gstreamer1.0-libav
 
   full:
     # KDE Plasma drops the libreoffice-gtk3 integration package
@@ -68,6 +108,9 @@ releases:
     packages:
       - accountsservice
       - libu2f-udev
+    packages_remove:
+      # Not in bookworm.
+      - libdisplay-info-bin
 
   trixie:
     architectures: [arm64, amd64]
@@ -84,9 +127,17 @@ releases:
   noble:
     architectures: [arm64, amd64]
     packages:
+      # The update notifier is a separate package on Ubuntu noble and later.
+      - plasma-discover-notifier
       - polkitd
       - pkexec
       - libu2f-udev
+      - pipewire-audio
+      - pipewire-pulse
+      - wireplumber
+    packages_remove:
+      - pulseaudio
+      - pulseaudio-module-bluetooth
 
   forky:
     # Debian 14 — pipewire replaces pulseaudio (same as trixie).
@@ -110,7 +161,6 @@ releases:
     packages:
       - network-manager-applet
       - accountsservice
-      - libu2f-udev
       - pipewire-audio
       - pipewire-pulse
       - wireplumber
@@ -129,11 +179,30 @@ releases:
       - polkitd
       - pkexec
       - libu2f-udev
+    packages_remove:
+      # Not in jammy.
+      - libdisplay-info-bin
+      - wayland-utils
 
   resolute:
     # Ubuntu 26.04 LTS — same as questing.
     architectures: [arm64, amd64]
     packages:
+      # The update notifier is a separate package on Ubuntu noble and later.
+      - plasma-discover-notifier
       - polkitd
       - pkexec
       - libfido2-1
+      - pipewire-audio
+      - pipewire-pulse
+      - wireplumber
+    packages_remove:
+      - pulseaudio
+      - pulseaudio-module-bluetooth
+
+tier_overrides:
+  minimal:
+    # Discover and its notifier show and install updates. No update-manager from common.
+    architectures:
+      amd64: { packages_remove: [update-manager] }
+      arm64: { packages_remove: [update-manager] }

@@ -401,6 +401,56 @@ _extlinux_fixture() {
 	unset -f write_uboot_platform_mtd write_uboot_platform_ufs write_uboot_platform
 }
 
+@test "bootloader write: mtd passes the image for the install target" {
+	write_uboot_platform_mtd() { echo "args=$#:${5:-}"; }
+	local dir="$TMP/uboot"; mkdir -p "$dir"; touch "$dir/spi.bin" "$dir/spi-sata.bin"
+	BOOTLOADER_MTD_IMAGE="spi.bin" BOOTLOADER_MTD_IMAGE_SATA="spi-sata.bin"
+	_install_rootfs_tran() { echo nvme; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi.bin" ]
+	_install_rootfs_tran() { echo sata; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi-sata.bin" ]
+	_install_rootfs_tran() { echo ata; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi-sata.bin" ]
+	_install_rootfs_tran() { echo usb; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi.bin" ]
+	# The image follows the disk that holds /boot, not /.
+	mkdir -p "$TMP/boot"
+	_install_rootfs_tran() { [[ "$1" == "$TMP/boot" ]] && echo sata || echo nvme; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi-sata.bin" ]
+	rmdir "$TMP/boot"
+	# An unknown transport writes the default image.
+	_install_rootfs_tran() { :; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=5:$dir/spi.bin" ]
+	# A declared image missing from the package fails before the writer runs.
+	rm "$dir/spi-sata.bin"
+	_install_rootfs_tran() { echo sata; }
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$status" -eq "$INSTALL_EX_BOOTLOADER" ] && [ -z "$output" ]
+	# A board without a declared image keeps the 4-argument call.
+	unset BOOTLOADER_MTD_IMAGE BOOTLOADER_MTD_IMAGE_SATA
+	run install_write_bootloader mtd /dev/mtdblock0 "$TMP" "$dir" mtdblock0
+	[ "$output" = "args=4:" ]
+	unset -f write_uboot_platform_mtd _install_rootfs_tran
+}
+
+@test "bootloader write: rootfs transport walks up through LUKS and LVM" {
+	# lsblk -rnso lists the root device first, then its parents. Only the disk has a transport.
+	findmnt() { echo /dev/mapper/vg-root; }
+	lsblk() { printf '\n\nsata\n'; }
+	run _install_rootfs_tran /
+	[ "$output" = "sata" ]
+	lsblk() { printf '\n\n'; }
+	run _install_rootfs_tran /
+	[ "$status" -eq 0 ] && [ -z "$output" ]
+	unset -f findmnt lsblk
+}
+
 @test "bootloader available: native needs Raspberry Pi-style firmware" {
 	# native writes a plain FAT32 boot partition only the board's own firmware
 	# reads; on anything else the target would never boot, so it must report
